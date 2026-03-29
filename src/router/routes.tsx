@@ -1,0 +1,44 @@
+import { lazy, Suspense } from 'react'
+import { createBrowserRouter } from 'react-router-dom'
+import { AppShell } from '@/components/AppShell'
+
+const WorldSelectorView = lazy(() => import('@/features/worlds/WorldSelectorView'))
+const WorldDashboardView = lazy(() => import('@/features/worlds/WorldDashboardView'))
+const MapExplorerView = lazy(() => import('@/features/maps/MapExplorerView'))
+const CharacterRosterView = lazy(() => import('@/features/characters/CharacterRosterView'))
+const CharacterDetailView = lazy(() => import('@/features/characters/CharacterDetailView'))
+const RelationshipGraphView = lazy(() => import('@/features/relationships/RelationshipGraphView'))
+const TimelineView = lazy(() => import('@/features/timeline/TimelineView'))
+const ChapterDetailView = lazy(() => import('@/features/timeline/ChapterDetailView'))
+
+function Loading() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[hsl(var(--border))] border-t-[hsl(var(--ring))]" />
+    </div>
+  )
+}
+
+function Wrap({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<Loading />}>{children}</Suspense>
+}
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Wrap><WorldSelectorView /></Wrap>,
+  },
+  {
+    path: '/worlds/:worldId',
+    element: <AppShell />,
+    children: [
+      { index: true, element: <Wrap><WorldDashboardView /></Wrap> },
+      { path: 'maps', element: <Wrap><MapExplorerView /></Wrap> },
+      { path: 'characters', element: <Wrap><CharacterRosterView /></Wrap> },
+      { path: 'characters/:characterId', element: <Wrap><CharacterDetailView /></Wrap> },
+      { path: 'relationships', element: <Wrap><RelationshipGraphView /></Wrap> },
+      { path: 'timeline', element: <Wrap><TimelineView /></Wrap> },
+      { path: 'timeline/:chapterId', element: <Wrap><ChapterDetailView /></Wrap> },
+    ],
+  },
+])

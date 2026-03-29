@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npx --yes create-vite@latest F:/Projects/WorldBreaker --template react-ts)",
+      "Bash(mv \"F:/Projects/WorldBreaker/F/Projects/WorldBreaker/\"* \"F:/Projects/WorldBreaker/\")",
+      "Bash(mv \"F:/Projects/WorldBreaker/F/Projects/WorldBreaker/\".* \"F:/Projects/WorldBreaker/\")",
+      "Bash(rm -rf \"F:/Projects/WorldBreaker/F\")",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init --yes --base-color slate)",
+      "Bash(npx shadcn@latest init --yes)",
+      "Bash(printf '\\\\n\\\\n\\\\n\\\\n\\\\n\\\\n')",
+      "Bash(npx shadcn@latest init)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(npm list:*)"
+    ]
+  }
+}

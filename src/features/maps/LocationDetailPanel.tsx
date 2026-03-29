@@ -1,0 +1,308 @@
+import { useState } from 'react'
+import { X, Trash2, Map, Link, Upload, Users, Plus, UserMinus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useLocationMarker, updateLocationMarker, deleteLocationMarker } from '@/db/hooks/useLocationMarkers'
+import { useMapLayers } from '@/db/hooks/useMapLayers'
+import { useCharacters } from '@/db/hooks/useCharacters'
+import { useWorldSnapshots, upsertSnapshot } from '@/db/hooks/useSnapshots'
+import { useTimelines, useChapters, createTimeline, createChapter } from '@/db/hooks/useTimeline'
+import { useAppStore } from '@/store'
+import { UploadMapDialog } from './UploadMapDialog'
+import { PortraitImage } from '@/components/PortraitImage'
+
+interface LocationDetailPanelProps {
+  markerId: string
+  worldId: string
+  onClose: () => void
+  onDrillDown: (mapLayerId: string) => void
+}
+
+export function LocationDetailPanel({ markerId, worldId, onClose, onDrillDown }: LocationDetailPanelProps) {
+  const marker = useLocationMarker(markerId)
+  const allLayers = useMapLayers(worldId)
+  const characters = useCharacters(worldId)
+  const allSnapshots = useWorldSnapshots(worldId)
+  const timelines = useTimelines(worldId)
+  const firstTimelineId = timelines[0]?.id ?? null
+  const chapters = useChapters(firstTimelineId)
+  const { setSelectedLocationMarkerId, activeChapterId, setActiveChapterId } = useAppStore()
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [uploadSubMapOpen, setUploadSubMapOpen] = useState(false)
+  const [addingChar, setAddingChar] = useState(false)
+  const [creatingChapter, setCreatingChapter] = useState(false)
+  const [newChapterTitle, setNewChapterTitle] = useState('')
+
+  if (!marker) return null
+
+  // Characters currently at this location for the active chapter (or most recent snapshot)
+  const charsHere = characters.filter((c) => {
+    const snap = activeChapterId
+      ? allSnapshots.find((s) => s.characterId === c.id && s.chapterId === activeChapterId)
+      : allSnapshots
+          .filter((s) => s.characterId === c.id)
+          .sort((a, b) => b.updatedAt - a.updatedAt)[0]
+    return snap?.currentLocationMarkerId === markerId
+  })
+
+  const charsElsewhere = characters.filter((c) => !charsHere.find((h) => h.id === c.id))
+
+  async function assignCharacter(characterId: string) {
+    if (!activeChapterId) return
+    const existing = allSnapshots.find(
+      (s) => s.characterId === characterId && s.chapterId === activeChapterId
+    )
+    await upsertSnapshot({
+      worldId,
+      characterId,
+      chapterId: activeChapterId,
+      isAlive: existing?.isAlive ?? true,
+      currentLocationMarkerId: markerId,
+      currentMapLayerId: marker!.mapLayerId,
+      inventoryItemIds: existing?.inventoryItemIds ?? [],
+      inventoryNotes: existing?.inventoryNotes ?? '',
+      statusNotes: existing?.statusNotes ?? '',
+    })
+    setAddingChar(false)
+  }
+
+  async function removeCharacter(characterId: string) {
+    if (!activeChapterId) return
+    const existing = allSnapshots.find(
+      (s) => s.characterId === characterId && s.chapterId === activeChapterId
+    )
+    if (!existing) return
+    await upsertSnapshot({ ...existing, currentLocationMarkerId: null, currentMapLayerId: null })
+  }
+
+  async function handleCreateChapter() {
+    if (!newChapterTitle.trim()) return
+    let timelineId = firstTimelineId
+    if (!timelineId) {
+      const tl = await createTimeline({ worldId, name: 'Main Timeline', description: '', color: '#60a5fa' })
+      timelineId = tl.id
+    }
+    const ch = await createChapter({
+      worldId,
+      timelineId,
+      number: chapters.length + 1,
+      title: newChapterTitle.trim(),
+      synopsis: '',
+    })
+    setActiveChapterId(ch.id)
+    setCreatingChapter(false)
+    setNewChapterTitle('')
+  }
+
+  function startEdit() {
+    setName(marker!.name)
+    setDescription(marker!.description)
+    setEditing(true)
+  }
+
+  async function saveEdit() {
+    await updateLocationMarker(markerId, { name: name.trim(), description: description.trim() })
+    setEditing(false)
+  }
+
+  async function handleDelete() {
+    if (confirm(`Delete location "${marker!.name}"?`)) {
+      await deleteLocationMarker(markerId)
+      setSelectedLocationMarkerId(null)
+      onClose()
+    }
+  }
+
+  async function handleLinkSubMap(layerId: string) {
+    await updateLocationMarker(markerId, { linkedMapLayerId: layerId === 'none' ? null : layerId })
+  }
+
+  const otherLayers = allLayers.filter((l) => l.id !== marker.mapLayerId)
+
+  return (
+    <div className="flex w-72 shrink-0 flex-col border-l border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+      <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-4 py-3">
+        <span className="text-sm font-semibold text-[hsl(var(--foreground))]">Location</span>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-auto p-4 flex flex-col gap-4">
+
+        {/* Name / edit */}
+        {editing ? (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <Label>Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Description</Label>
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={saveEdit} disabled={!name.trim()}>Save</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <h3 className="font-semibold text-[hsl(var(--foreground))]">{marker.name}</h3>
+              <p className="mt-0.5 text-xs capitalize text-[hsl(var(--muted-foreground))]">{marker.iconType}</p>
+              {marker.description && (
+                <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{marker.description}</p>
+              )}
+            </div>
+            <Button size="sm" variant="outline" onClick={startEdit}>Edit</Button>
+          </>
+        )}
+
+        {/* ── Characters ── */}
+        <div className="flex flex-col gap-2">
+          <Label className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" /> Characters here
+          </Label>
+
+          {/* No chapter selected → prompt */}
+          {!activeChapterId && (
+            <div className="rounded-md border border-dashed border-[hsl(var(--border))] p-3 flex flex-col gap-2">
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                Select a chapter to place characters, or create one now:
+              </p>
+              {chapters.length > 0 && (
+                <Select onValueChange={setActiveChapterId}>
+                  <SelectTrigger className="text-xs h-8">
+                    <SelectValue placeholder="Select chapter..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {chapters.map((ch) => (
+                      <SelectItem key={ch.id} value={ch.id}>Ch. {ch.number} — {ch.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {creatingChapter ? (
+                <div className="flex gap-1.5">
+                  <Input
+                    className="h-7 text-xs"
+                    placeholder="Chapter title..."
+                    value={newChapterTitle}
+                    onChange={(e) => setNewChapterTitle(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateChapter()}
+                    autoFocus
+                  />
+                  <Button size="sm" className="h-7 px-2 text-xs" onClick={handleCreateChapter} disabled={!newChapterTitle.trim()}>
+                    Add
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setCreatingChapter(true)}>
+                  <Plus className="h-3 w-3" /> New chapter
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Characters already here */}
+          {charsHere.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {charsHere.map((c) => (
+                <div key={c.id} className="flex items-center gap-2 rounded-md bg-[hsl(var(--muted))] px-2 py-1.5">
+                  <PortraitImage
+                    imageId={c.portraitImageId}
+                    className="h-6 w-6 rounded-full object-cover"
+                    fallbackClassName="h-6 w-6 rounded-full"
+                  />
+                  <span className="flex-1 text-xs font-medium truncate">{c.name}</span>
+                  {activeChapterId && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 hover:text-red-400"
+                      onClick={() => removeCharacter(c.id)}
+                    >
+                      <UserMinus className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add a character */}
+          {activeChapterId && charsElsewhere.length > 0 && (
+            addingChar ? (
+              <Select onValueChange={assignCharacter}>
+                <SelectTrigger className="text-xs h-8">
+                  <SelectValue placeholder="Choose character..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {charsElsewhere.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setAddingChar(true)}>
+                <Plus className="h-3.5 w-3.5" /> Add character here
+              </Button>
+            )
+          )}
+
+          {activeChapterId && characters.length === 0 && (
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">No characters in this world yet.</p>
+          )}
+        </div>
+
+        {/* ── Sub-map ── */}
+        <div className="flex flex-col gap-1.5">
+          <Label className="flex items-center gap-1.5">
+            <Link className="h-3.5 w-3.5" /> Sub-map
+          </Label>
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setUploadSubMapOpen(true)}>
+            <Upload className="h-3.5 w-3.5" /> Upload Sub-map
+          </Button>
+          {otherLayers.length > 0 && (
+            <Select value={marker.linkedMapLayerId ?? 'none'} onValueChange={handleLinkSubMap}>
+              <SelectTrigger className="text-xs">
+                <SelectValue placeholder="Or link existing map..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {otherLayers.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {marker.linkedMapLayerId && (
+            <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => onDrillDown(marker.linkedMapLayerId!)}>
+              <Map className="h-3.5 w-3.5" /> Open Sub-map
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <UploadMapDialog
+        open={uploadSubMapOpen}
+        onOpenChange={setUploadSubMapOpen}
+        worldId={worldId}
+        parentMapId={marker.mapLayerId}
+        onCreated={(newLayerId) => handleLinkSubMap(newLayerId)}
+      />
+
+      <div className="border-t border-[hsl(var(--border))] p-3">
+        <Button variant="destructive" size="sm" className="w-full gap-1.5" onClick={handleDelete}>
+          <Trash2 className="h-3.5 w-3.5" /> Delete Location
+        </Button>
+      </div>
+    </div>
+  )
+}

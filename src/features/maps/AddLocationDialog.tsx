@@ -1,0 +1,107 @@
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { createLocationMarker } from '@/db/hooks/useLocationMarkers'
+import type { LocationIconType } from '@/types'
+
+const ICON_TYPES: { value: LocationIconType; label: string }[] = [
+  { value: 'city', label: 'City' },
+  { value: 'town', label: 'Town' },
+  { value: 'dungeon', label: 'Dungeon' },
+  { value: 'landmark', label: 'Landmark' },
+  { value: 'building', label: 'Building' },
+  { value: 'region', label: 'Region' },
+  { value: 'custom', label: 'Custom' },
+]
+
+interface AddLocationDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  worldId: string
+  mapLayerId: string
+  position: { x: number; y: number }
+  onCreated?: () => void
+}
+
+export function AddLocationDialog({
+  open, onOpenChange, worldId, mapLayerId, position, onCreated,
+}: AddLocationDialogProps) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [iconType, setIconType] = useState<LocationIconType>('city')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSaving(true)
+    await createLocationMarker({
+      worldId,
+      mapLayerId,
+      name: name.trim(),
+      description: description.trim(),
+      x: position.x,
+      y: position.y,
+      iconType,
+    })
+    setSaving(false)
+    setName('')
+    setDescription('')
+    setIconType('city')
+    onOpenChange(false)
+    onCreated?.()
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Location</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label>Name</Label>
+            <Input
+              placeholder="e.g. Thornwall City"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Type</Label>
+            <Select value={iconType} onValueChange={(v) => setIconType(v as LocationIconType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ICON_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Description</Label>
+            <Textarea
+              placeholder="Optional description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={!name.trim() || saving}>
+              {saving ? 'Saving...' : 'Add Location'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
