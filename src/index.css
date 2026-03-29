@@ -2,6 +2,7 @@
 @import "leaflet/dist/leaflet.css";
 
 @layer base {
+  /* ── Default (Dark Slate) ── */
   :root {
     --background: 222 47% 11%;
     --foreground: 213 31% 91%;
@@ -23,6 +24,168 @@
     --input: 217 33% 22%;
     --ring: 212 72% 59%;
     --radius: 0.5rem;
+    --font-body: ui-sans-serif, system-ui, sans-serif;
+    --font-heading: ui-sans-serif, system-ui, sans-serif;
+    --leaflet-bg: 222, 47%, 8%;
+    --leaflet-card: 222, 47%, 14%;
+    --leaflet-border: 217, 33%, 22%;
+    --leaflet-fg: 213, 31%, 91%;
+    --leaflet-muted: 215, 20%, 65%;
+  }
+
+  /* ── Fantasy (Aged Parchment) ── */
+  .theme-fantasy {
+    --background: 35 30% 10%;
+    --foreground: 38 60% 88%;
+    --card: 35 28% 14%;
+    --card-foreground: 38 60% 88%;
+    --popover: 35 30% 10%;
+    --popover-foreground: 38 60% 88%;
+    --primary: 38 60% 88%;
+    --primary-foreground: 35 30% 10%;
+    --secondary: 35 25% 19%;
+    --secondary-foreground: 38 60% 88%;
+    --muted: 35 25% 19%;
+    --muted-foreground: 35 30% 58%;
+    --accent: 35 28% 24%;
+    --accent-foreground: 38 60% 88%;
+    --destructive: 0 55% 35%;
+    --destructive-foreground: 38 60% 88%;
+    --border: 35 28% 24%;
+    --input: 35 28% 24%;
+    --ring: 38 72% 55%;
+    --radius: 0.25rem;
+    --font-body: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --font-heading: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --leaflet-bg: 35, 30%, 7%;
+    --leaflet-card: 35, 28%, 14%;
+    --leaflet-border: 35, 28%, 24%;
+    --leaflet-fg: 38, 60%, 88%;
+    --leaflet-muted: 35, 30%, 58%;
+  }
+
+  /* ── Sci-Fi (Deep Space) ── */
+  .theme-scifi {
+    --background: 220 60% 5%;
+    --foreground: 195 80% 85%;
+    --card: 220 55% 8%;
+    --card-foreground: 195 80% 85%;
+    --popover: 220 60% 5%;
+    --popover-foreground: 195 80% 85%;
+    --primary: 195 80% 85%;
+    --primary-foreground: 220 60% 5%;
+    --secondary: 220 50% 12%;
+    --secondary-foreground: 195 80% 85%;
+    --muted: 220 50% 12%;
+    --muted-foreground: 210 40% 55%;
+    --accent: 220 50% 16%;
+    --accent-foreground: 195 80% 85%;
+    --destructive: 0 70% 40%;
+    --destructive-foreground: 195 80% 85%;
+    --border: 210 60% 18%;
+    --input: 210 60% 18%;
+    --ring: 190 100% 50%;
+    --radius: 0.125rem;
+    --font-body: 'Share Tech Mono', 'Courier New', monospace;
+    --font-heading: 'Share Tech Mono', 'Courier New', monospace;
+    --leaflet-bg: 220, 60%, 3%;
+    --leaflet-card: 220, 55%, 8%;
+    --leaflet-border: 210, 60%, 18%;
+    --leaflet-fg: 195, 80%, 85%;
+    --leaflet-muted: 210, 40%, 55%;
+  }
+
+  /* ── Cyberpunk (Neon Noir) ── */
+  .theme-cyberpunk {
+    --background: 270 20% 6%;
+    --foreground: 300 100% 85%;
+    --card: 270 18% 10%;
+    --card-foreground: 300 100% 85%;
+    --popover: 270 20% 6%;
+    --popover-foreground: 300 100% 85%;
+    --primary: 300 100% 85%;
+    --primary-foreground: 270 20% 6%;
+    --secondary: 270 15% 15%;
+    --secondary-foreground: 300 100% 85%;
+    --muted: 270 15% 15%;
+    --muted-foreground: 280 30% 55%;
+    --accent: 270 18% 20%;
+    --accent-foreground: 300 100% 85%;
+    --destructive: 0 80% 45%;
+    --destructive-foreground: 300 100% 85%;
+    --border: 285 40% 22%;
+    --input: 285 40% 22%;
+    --ring: 300 100% 60%;
+    --radius: 0rem;
+    --font-body: 'Share Tech Mono', 'Courier New', monospace;
+    --font-heading: 'Share Tech Mono', 'Courier New', monospace;
+    --leaflet-bg: 270, 20%, 4%;
+    --leaflet-card: 270, 18%, 10%;
+    --leaflet-border: 285, 40%, 22%;
+    --leaflet-fg: 300, 100%, 85%;
+    --leaflet-muted: 280, 30%, 55%;
+  }
+
+  /* ── Horror (Blood & Shadow) ── */
+  .theme-horror {
+    --background: 0 15% 5%;
+    --foreground: 0 10% 85%;
+    --card: 0 12% 8%;
+    --card-foreground: 0 10% 85%;
+    --popover: 0 15% 5%;
+    --popover-foreground: 0 10% 85%;
+    --primary: 0 10% 85%;
+    --primary-foreground: 0 15% 5%;
+    --secondary: 0 10% 12%;
+    --secondary-foreground: 0 10% 85%;
+    --muted: 0 10% 12%;
+    --muted-foreground: 0 8% 50%;
+    --accent: 0 12% 16%;
+    --accent-foreground: 0 10% 85%;
+    --destructive: 0 80% 35%;
+    --destructive-foreground: 0 10% 85%;
+    --border: 0 15% 18%;
+    --input: 0 15% 18%;
+    --ring: 0 80% 45%;
+    --radius: 0rem;
+    --font-body: 'Palatino Linotype', Palatino, Georgia, serif;
+    --font-heading: 'Palatino Linotype', Palatino, Georgia, serif;
+    --leaflet-bg: 0, 15%, 3%;
+    --leaflet-card: 0, 12%, 8%;
+    --leaflet-border: 0, 15%, 18%;
+    --leaflet-fg: 0, 10%, 85%;
+    --leaflet-muted: 0, 8%, 50%;
+  }
+
+  /* ── Western (Dusty Frontier) ── */
+  .theme-western {
+    --background: 25 35% 8%;
+    --foreground: 35 50% 85%;
+    --card: 25 32% 12%;
+    --card-foreground: 35 50% 85%;
+    --popover: 25 35% 8%;
+    --popover-foreground: 35 50% 85%;
+    --primary: 35 50% 85%;
+    --primary-foreground: 25 35% 8%;
+    --secondary: 25 28% 17%;
+    --secondary-foreground: 35 50% 85%;
+    --muted: 25 28% 17%;
+    --muted-foreground: 30 25% 52%;
+    --accent: 25 30% 22%;
+    --accent-foreground: 35 50% 85%;
+    --destructive: 5 65% 35%;
+    --destructive-foreground: 35 50% 85%;
+    --border: 25 30% 22%;
+    --input: 25 30% 22%;
+    --ring: 35 80% 50%;
+    --radius: 0.125rem;
+    --font-body: 'Palatino Linotype', Palatino, Georgia, serif;
+    --font-heading: 'Palatino Linotype', Palatino, Georgia, serif;
+    --leaflet-bg: 25, 35%, 5%;
+    --leaflet-card: 25, 32%, 12%;
+    --leaflet-border: 25, 30%, 22%;
+    --leaflet-fg: 35, 50%, 85%;
+    --leaflet-muted: 30, 25%, 52%;
   }
 
   * {
@@ -34,7 +197,7 @@
     margin: 0;
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
   }
 
@@ -46,32 +209,53 @@
   }
 }
 
-/* Leaflet overrides for dark theme */
+/* ── Leaflet theme-aware overrides ── */
 .leaflet-container {
-  background: hsl(222, 47%, 8%);
-  font-family: inherit;
+  background: hsl(var(--leaflet-bg));
+  font-family: var(--font-body);
 }
 
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
-  background: hsl(222, 47%, 14%);
-  color: hsl(213, 31%, 91%);
+  background: hsl(var(--leaflet-card));
+  color: hsl(var(--leaflet-fg));
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  border: 1px solid hsl(217, 33%, 22%);
+  border: 1px solid hsl(var(--leaflet-border));
 }
 
 .leaflet-popup-close-button {
-  color: hsl(215, 20%, 65%) !important;
+  color: hsl(var(--leaflet-muted)) !important;
 }
 
 .leaflet-bar a,
 .leaflet-bar a:hover {
-  background-color: hsl(222, 47%, 14%);
-  color: hsl(213, 31%, 91%);
-  border-color: hsl(217, 33%, 22%);
+  background-color: hsl(var(--leaflet-card));
+  color: hsl(var(--leaflet-fg));
+  border-color: hsl(var(--leaflet-border));
 }
 
 .leaflet-control-zoom-in,
 .leaflet-control-zoom-out {
-  color: hsl(213, 31%, 91%) !important;
+  color: hsl(var(--leaflet-fg)) !important;
+}
+
+/* ── Cyberpunk neon glow accents ── */
+.theme-cyberpunk .leaflet-popup-content-wrapper {
+  box-shadow: 0 0 12px hsl(300, 100%, 40%), 0 4px 16px rgba(0,0,0,0.8);
+}
+
+/* ── Sci-Fi scan line texture ── */
+.theme-scifi body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 255, 0.015) 2px,
+    rgba(0, 255, 255, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
 }

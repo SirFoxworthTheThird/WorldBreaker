@@ -20,6 +20,8 @@ interface MapSlice {
   resetMapHistory: (rootId: string) => void
 }
 
+export type AppTheme = 'default' | 'fantasy' | 'scifi' | 'cyberpunk' | 'horror' | 'western'
+
 interface UISlice {
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
@@ -30,6 +32,8 @@ interface UISlice {
   setSelectedCharacterId: (id: string | null) => void
   selectedRelationshipId: string | null
   setSelectedRelationshipId: (id: string | null) => void
+  theme: AppTheme
+  setTheme: (theme: AppTheme) => void
 }
 
 type AppStore = WorldSlice & ChapterSlice & MapSlice & UISlice
@@ -75,6 +79,8 @@ export const useAppStore = create<AppStore>()(
       setSelectedCharacterId: (id) => set({ selectedCharacterId: id }),
       selectedRelationshipId: null,
       setSelectedRelationshipId: (id) => set({ selectedRelationshipId: id }),
+      theme: 'default',
+      setTheme: (theme) => set({ theme }),
     }),
     {
       name: 'worldbreaker-ui',
@@ -82,6 +88,7 @@ export const useAppStore = create<AppStore>()(
         activeWorldId: state.activeWorldId,
         activeChapterId: state.activeChapterId,
         sidebarOpen: state.sidebarOpen,
+        theme: state.theme,
       }),
     }
   )

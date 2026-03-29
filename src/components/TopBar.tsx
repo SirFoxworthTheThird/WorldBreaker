@@ -4,6 +4,7 @@ import { useWorld } from '@/db/hooks/useWorlds'
 import { useTimelines, useChapters } from '@/db/hooks/useTimeline'
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { ThemePicker } from './ThemePicker'
 import { useNavigate } from 'react-router-dom'
 
 function ChapterSelector() {
@@ -67,7 +68,8 @@ export function TopBar() {
         </>
       )}
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        <ThemePicker />
         <ChapterSelector />
       </div>
     </header>
