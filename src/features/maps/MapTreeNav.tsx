@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { ChevronRight, ChevronDown, Map, MapPin } from 'lucide-react'
-import { useMapLayers } from '@/db/hooks/useMapLayers'
+import { ChevronRight, ChevronDown, Map, MapPin, Trash2 } from 'lucide-react'
+import { useMapLayers, deleteMapLayer } from '@/db/hooks/useMapLayers'
 import { useAppStore, useMapLayerHistory } from '@/store'
 import type { MapLayer } from '@/types'
 
@@ -10,23 +10,38 @@ interface TreeNodeProps {
   activeLayerId: string | null
   depth: number
   onSelect: (id: string) => void
+  onDeleted: (id: string) => void
 }
 
-function TreeNode({ layer, allLayers, activeLayerId, depth, onSelect }: TreeNodeProps) {
+function TreeNode({ layer, allLayers, activeLayerId, depth, onSelect, onDeleted }: TreeNodeProps) {
   const children = allLayers.filter((l) => l.parentMapId === layer.id)
   const [open, setOpen] = useState(true)
+  const [hovered, setHovered] = useState(false)
   const isActive = layer.id === activeLayerId
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation()
+    const childCount = allLayers.filter((l) => l.parentMapId === layer.id).length
+    const msg = childCount > 0
+      ? `Delete "${layer.name}" and its ${childCount} sub-map(s)? This cannot be undone.`
+      : `Delete "${layer.name}"? This cannot be undone.`
+    if (!confirm(msg)) return
+    await deleteMapLayer(layer.id)
+    onDeleted(layer.id)
+  }
 
   return (
     <div>
       <div
-        className={`flex items-center gap-1 rounded-md px-2 py-1 cursor-pointer select-none transition-colors ${
+        className={`group flex items-center gap-1 rounded-md px-2 py-1 cursor-pointer select-none transition-colors ${
           isActive
             ? 'bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]'
             : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]'
         }`}
         style={{ paddingLeft: `${8 + depth * 14}px` }}
         onClick={() => onSelect(layer.id)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         {children.length > 0 ? (
           <button
@@ -40,10 +55,17 @@ function TreeNode({ layer, allLayers, activeLayerId, depth, onSelect }: TreeNode
         ) : (
           <MapPin className="h-3 w-3 shrink-0 opacity-50" />
         )}
-        {depth === 0
-          ? <Map className="h-3 w-3 shrink-0" />
-          : null}
-        <span className="text-xs truncate">{layer.name}</span>
+        {depth === 0 && <Map className="h-3 w-3 shrink-0" />}
+        <span className="text-xs truncate flex-1">{layer.name}</span>
+        {hovered && (
+          <button
+            className="shrink-0 p-0.5 rounded hover:text-red-400 transition-colors"
+            onClick={handleDelete}
+            title="Delete map"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       {open && children.map((child) => (
@@ -54,6 +76,7 @@ function TreeNode({ layer, allLayers, activeLayerId, depth, onSelect }: TreeNode
           activeLayerId={activeLayerId}
           depth={depth + 1}
           onSelect={onSelect}
+          onDeleted={onDeleted}
         />
       ))}
     </div>
@@ -67,18 +90,24 @@ interface MapTreeNavProps {
 export function MapTreeNav({ worldId }: MapTreeNavProps) {
   const allLayers = useMapLayers(worldId)
   const history = useMapLayerHistory()
-  const { resetMapHistory } = useAppStore()
+  const { resetMapHistory, setActiveMapLayerId } = useAppStore()
   const activeLayerId = history[history.length - 1] ?? null
 
   const roots = allLayers.filter((l) => l.parentMapId === null)
 
   function handleSelect(id: string) {
-    // If id is in the current history, navigate back to it; otherwise start fresh from it
-    const idx = history.indexOf(id)
-    if (idx >= 0) {
-      resetMapHistory(id)
-    } else {
-      resetMapHistory(id)
+    resetMapHistory(id)
+  }
+
+  function handleDeleted(deletedId: string) {
+    // If the deleted layer (or an ancestor of it) was active, navigate to first remaining root
+    if (history.includes(deletedId)) {
+      const remaining = allLayers.filter((l) => l.id !== deletedId && l.parentMapId === null)
+      if (remaining.length > 0) {
+        resetMapHistory(remaining[0].id)
+      } else {
+        setActiveMapLayerId('')
+      }
     }
   }
 
@@ -98,6 +127,7 @@ export function MapTreeNav({ worldId }: MapTreeNavProps) {
             activeLayerId={activeLayerId}
             depth={0}
             onSelect={handleSelect}
+            onDeleted={handleDeleted}
           />
         ))}
       </div>

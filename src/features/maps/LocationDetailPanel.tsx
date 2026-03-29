@@ -295,7 +295,10 @@ export function LocationDetailPanel({ markerId, worldId, onClose, onDrillDown }:
         onOpenChange={setUploadSubMapOpen}
         worldId={worldId}
         parentMapId={marker.mapLayerId}
-        onCreated={(newLayerId) => handleLinkSubMap(newLayerId)}
+        onCreated={async (newLayerId) => {
+          await handleLinkSubMap(newLayerId)
+          onDrillDown(newLayerId)
+        }}
       />
 
       <div className="border-t border-[hsl(var(--border))] p-3">

@@ -63,6 +63,14 @@ function ClickHandler({ onMapClickRef }: { onMapClickRef: React.RefObject<(latln
   return null
 }
 
+function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression }) {
+  const map = useMapEvents({})
+  useEffect(() => {
+    map.fitBounds(bounds, { padding: [0, 0], animate: false })
+  }, [map, bounds]) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
+
 export interface CharacterPin {
   character: Character
   x: number
@@ -166,13 +174,15 @@ export function LeafletMapCanvas({
       <MapContainer
         ref={mapRef}
         crs={L.CRS.Simple}
-        bounds={bounds}
+        center={[h / 2, w / 2]}
+        zoom={0}
         style={{ height: '100%', width: '100%' }}
         maxBounds={[[-h * 0.2, -w * 0.2], [h * 1.2, w * 1.2]]}
         minZoom={-3}
         maxZoom={4}
-        zoomSnap={0.5}
+        zoomSnap={0.25}
       >
+        <FitBounds bounds={bounds} />
         <ImageOverlay url={imageUrl} bounds={bounds} />
         <ClickHandler onMapClickRef={onMapClickRef} />
 

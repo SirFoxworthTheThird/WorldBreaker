@@ -9,7 +9,8 @@ interface SelectContextValue {
   open: boolean
   setOpen: (open: boolean) => void
   triggerRef: React.RefObject<HTMLButtonElement | null>
-  registry: Map<string, string>
+  registerLabel: (value: string, label: string) => void
+  getLabel: (value: string) => string | undefined
 }
 
 const SelectContext = React.createContext<SelectContextValue>({
@@ -18,7 +19,8 @@ const SelectContext = React.createContext<SelectContextValue>({
   open: false,
   setOpen: () => {},
   triggerRef: { current: null },
-  registry: new Map(),
+  registerLabel: () => {},
+  getLabel: () => undefined,
 })
 
 interface SelectProps {
@@ -32,7 +34,7 @@ function Select({ value: controlledValue, defaultValue = '', onValueChange, chil
   const [internalValue, setInternalValue] = React.useState(defaultValue)
   const [open, setOpen] = React.useState(false)
   const triggerRef = React.useRef<HTMLButtonElement>(null)
-  const [registry] = React.useState(() => new Map<string, string>())
+  const [labels, setLabels] = React.useState<Record<string, string>>({})
 
   const value = controlledValue !== undefined ? controlledValue : internalValue
 
@@ -40,6 +42,17 @@ function Select({ value: controlledValue, defaultValue = '', onValueChange, chil
     setInternalValue(v)
     onValueChange?.(v)
     setOpen(false)
+  }
+
+  function registerLabel(itemValue: string, label: string) {
+    setLabels((prev) => {
+      if (prev[itemValue] === label) return prev
+      return { ...prev, [itemValue]: label }
+    })
+  }
+
+  function getLabel(itemValue: string) {
+    return labels[itemValue]
   }
 
   React.useEffect(() => {
@@ -53,7 +66,7 @@ function Select({ value: controlledValue, defaultValue = '', onValueChange, chil
   }, [open])
 
   return (
-    <SelectContext.Provider value={{ value, onValueChange: handleValueChange, open, setOpen, triggerRef, registry }}>
+    <SelectContext.Provider value={{ value, onValueChange: handleValueChange, open, setOpen, triggerRef, registerLabel, getLabel }}>
       {children}
     </SelectContext.Provider>
   )
@@ -89,8 +102,8 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
 SelectTrigger.displayName = 'SelectTrigger'
 
 function SelectValue({ placeholder }: { placeholder?: string }) {
-  const { value, registry } = React.useContext(SelectContext)
-  const label = registry.get(value)
+  const { value, getLabel } = React.useContext(SelectContext)
+  const label = getLabel(value)
   return (
     <span className={cn(!label && 'text-[hsl(var(--muted-foreground))]')}>
       {label ?? placeholder ?? ''}
@@ -150,12 +163,13 @@ interface SelectItemProps {
 }
 
 function SelectItem({ value, children, className, disabled }: SelectItemProps) {
-  const { value: selectedValue, onValueChange, registry } = React.useContext(SelectContext)
+  const { value: selectedValue, onValueChange, registerLabel } = React.useContext(SelectContext)
   const isSelected = selectedValue === value
 
-  // Register label into the shared registry
   const label = typeof children === 'string' ? children : ''
-  registry.set(value, label)
+  React.useEffect(() => {
+    registerLabel(value, label)
+  }, [value, label]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
