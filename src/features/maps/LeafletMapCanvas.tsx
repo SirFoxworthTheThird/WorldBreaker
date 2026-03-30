@@ -42,47 +42,41 @@ function makeLocationIcon(iconType: string, isLinked: boolean, highlighted = fal
   })
 }
 
-function makeCharacterIcon(name: string, inSubMap = false, portraitUrl?: string | null) {
-  const stroke = inSubMap ? 'stroke="#94a3b8" stroke-dasharray="4,2"' : 'stroke="#60a5fa"'
-  const strokeWidth = 2
-  const size = 36
-  const r = size / 2 - strokeWidth
+function makeCharacterIcon(name: string, inSubMap = false, portraitUrl?: string | null, zoom = 0) {
+  const size = Math.max(20, Math.min(128, Math.round(36 * Math.pow(2, zoom))))
+  const border = inSubMap ? '2px dashed #94a3b8' : '2px solid #60a5fa'
+  const bg = inSubMap ? '#0f172a' : '#1e293b'
+  const fontSize = Math.round(size * 0.36)
 
-  let inner: string
+  let content: string
   if (portraitUrl) {
     const safeUrl = escapeXml(portraitUrl)
-    inner = `
-      <defs>
-        <clipPath id="cp-${escapeXml(name)}">
-          <circle cx="18" cy="18" r="${r}"/>
-        </clipPath>
-      </defs>
-      <image href="${safeUrl}" x="${strokeWidth}" y="${strokeWidth}"
-        width="${size - strokeWidth * 2}" height="${size - strokeWidth * 2}"
-        clip-path="url(#cp-${escapeXml(name)})"
-        preserveAspectRatio="xMidYMid slice"/>
-    `
+    content = `<img src="${safeUrl}" style="width:100%;height:100%;object-fit:cover;display:block;" />`
   } else {
     const initials = escapeXml(name.slice(0, 2).toUpperCase())
-    const fill = inSubMap ? '#0f172a' : '#1e293b'
-    const textFill = inSubMap ? '#94a3b8' : '#e2e8f0'
-    inner = `
-      <circle cx="18" cy="18" r="${r}" fill="${fill}"/>
-      <text x="18" y="23" text-anchor="middle" font-size="13" font-family="sans-serif" font-weight="bold" fill="${textFill}">${initials}</text>
-    `
+    const textColor = inSubMap ? '#94a3b8' : '#e2e8f0'
+    content = `<span style="color:${textColor};font-size:${fontSize}px;font-weight:bold;font-family:sans-serif;line-height:1;user-select:none;">${initials}</span>`
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-    ${inner}
-    <circle cx="18" cy="18" r="${r}" fill="none" ${stroke} stroke-width="${strokeWidth}"/>
-  </svg>`
+  const html = `<div style="
+    width:${size}px;
+    height:${size}px;
+    border-radius:50%;
+    border:${border};
+    background:${bg};
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-sizing:border-box;
+  ">${content}</div>`
 
   return L.divIcon({
-    html: svg,
+    html,
     className: '',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -20],
+    popupAnchor: [0, -size / 2],
   })
 }
 
@@ -114,6 +108,12 @@ function ContextMenuHandler({
       })
     },
   })
+  return null
+}
+
+function ZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+  const map = useMapEvents({ zoomend: () => onZoomChange(map.getZoom()) })
+  useEffect(() => { onZoomChange(map.getZoom()) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return null
 }
 
@@ -171,6 +171,7 @@ export function LeafletMapCanvas({
 }: LeafletMapCanvasProps) {
   const internalMapRef = useRef<L.Map | null>(null)
   const mapRef = externalMapRef ?? internalMapRef
+  const [mapZoom, setMapZoom] = useState(0)
   const [addMode, setAddMode] = useState(false)
   const addModeRef = useRef(false)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -254,6 +255,7 @@ export function LeafletMapCanvas({
         zoomSnap={0.25}
       >
         <FitBounds bounds={bounds} />
+        <ZoomTracker onZoomChange={setMapZoom} />
         <ImageOverlay url={imageUrl} bounds={bounds} />
         <ClickHandler onMapClickRef={onMapClickRef} />
         <ContextMenuHandler onContextMenu={setContextMenu} />
@@ -310,7 +312,7 @@ export function LeafletMapCanvas({
           <Marker
             key={`${character.id}-${idx}`}
             position={[y + 20 * idx, x + 20 * idx]}
-            icon={makeCharacterIcon(character.name, inSubMap, portraitUrl)}
+            icon={makeCharacterIcon(character.name, inSubMap, portraitUrl, mapZoom)}
             eventHandlers={{ click: () => onCharacterClick?.(character.id) }}
           >
             <Popup>

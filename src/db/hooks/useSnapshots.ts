@@ -49,34 +49,26 @@ export function useWorldSnapshots(worldId: string | null) {
   )
 }
 
-/** Returns the best snapshot per character: active chapter's if available, else most recent. */
+/** Returns snapshots for the active chapter only. When no chapter is selected, returns the most recent snapshot per character. */
 export function useBestSnapshots(worldId: string | null, activeChapterId: string | null): CharacterSnapshot[] {
   const all = useWorldSnapshots(worldId)
   if (!all.length) return []
 
-  // Group by characterId
-  const byChar = new Map<string, CharacterSnapshot[]>()
-  for (const snap of all) {
-    const list = byChar.get(snap.characterId) ?? []
-    list.push(snap)
-    byChar.set(snap.characterId, list)
+  if (activeChapterId) {
+    // Only return snapshots that explicitly belong to this chapter.
+    // A snapshot from a different chapter must never bleed into this one.
+    return all.filter((s) => s.chapterId === activeChapterId)
   }
 
-  const result: CharacterSnapshot[] = []
-  for (const snaps of byChar.values()) {
-    // Prefer the active chapter's snapshot
-    const chapterSnap = activeChapterId
-      ? snaps.find((s) => s.chapterId === activeChapterId)
-      : undefined
-    if (chapterSnap) {
-      result.push(chapterSnap)
-    } else {
-      // Fall back to most recently updated
-      const latest = snaps.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b))
-      result.push(latest)
+  // No chapter selected: show the most recently updated snapshot per character.
+  const byChar = new Map<string, CharacterSnapshot>()
+  for (const snap of all) {
+    const current = byChar.get(snap.characterId)
+    if (!current || snap.updatedAt > current.updatedAt) {
+      byChar.set(snap.characterId, snap)
     }
   }
-  return result
+  return Array.from(byChar.values())
 }
 
 export async function upsertSnapshot(

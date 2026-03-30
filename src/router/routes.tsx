@@ -7,6 +7,8 @@ const WorldDashboardView = lazy(() => import('@/features/worlds/WorldDashboardVi
 const MapExplorerView = lazy(() => import('@/features/maps/MapExplorerView'))
 const CharacterRosterView = lazy(() => import('@/features/characters/CharacterRosterView'))
 const CharacterDetailView = lazy(() => import('@/features/characters/CharacterDetailView'))
+const ItemRosterView = lazy(() => import('@/features/items/ItemRosterView'))
+const ItemDetailView = lazy(() => import('@/features/items/ItemDetailView'))
 const RelationshipGraphView = lazy(() => import('@/features/relationships/RelationshipGraphView'))
 const TimelineView = lazy(() => import('@/features/timeline/TimelineView'))
 const ChapterDetailView = lazy(() => import('@/features/timeline/ChapterDetailView'))
@@ -36,6 +38,8 @@ export const router = createBrowserRouter([
       { path: 'maps', element: <Wrap><MapExplorerView /></Wrap> },
       { path: 'characters', element: <Wrap><CharacterRosterView /></Wrap> },
       { path: 'characters/:characterId', element: <Wrap><CharacterDetailView /></Wrap> },
+      { path: 'items', element: <Wrap><ItemRosterView /></Wrap> },
+      { path: 'items/:itemId', element: <Wrap><ItemDetailView /></Wrap> },
       { path: 'relationships', element: <Wrap><RelationshipGraphView /></Wrap> },
       { path: 'timeline', element: <Wrap><TimelineView /></Wrap> },
       { path: 'timeline/:chapterId', element: <Wrap><ChapterDetailView /></Wrap> },

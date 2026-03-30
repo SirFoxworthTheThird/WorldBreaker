@@ -1,4 +1,4 @@
-import { BookOpen, Map, Users, Network, LayoutDashboard } from 'lucide-react'
+import { BookOpen, Map, Users, Network, LayoutDashboard, Package } from 'lucide-react'
 import { useAppStore, useActiveWorldId, useActiveChapterId } from '@/store'
 import { useWorld } from '@/db/hooks/useWorlds'
 import { useTimelines, useChapters } from '@/db/hooks/useTimeline'
@@ -11,6 +11,7 @@ const navItems = [
   { to: '', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: 'maps', label: 'Maps', icon: Map, end: false },
   { to: 'characters', label: 'Characters', icon: Users, end: false },
+  { to: 'items', label: 'Items', icon: Package, end: false },
   { to: 'relationships', label: 'Relationships', icon: Network, end: false },
   { to: 'timeline', label: 'Timeline', icon: BookOpen, end: false },
 ]
