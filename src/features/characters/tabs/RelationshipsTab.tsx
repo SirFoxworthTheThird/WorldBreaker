@@ -3,6 +3,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import type { Character } from '@/types'
 import { useCharacterRelationships, createRelationship, deleteRelationship } from '@/db/hooks/useRelationships'
 import { useCharacters } from '@/db/hooks/useCharacters'
+import { useWorldChapters } from '@/db/hooks/useTimeline'
+import { useActiveChapterId } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,9 +25,11 @@ interface AddRelationshipDialogProps {
   onOpenChange: (open: boolean) => void
   character: Character
   otherCharacters: Character[]
+  startChapterId: string | null
+  startChapterLabel: string | null
 }
 
-function AddRelationshipDialog({ open, onOpenChange, character, otherCharacters }: AddRelationshipDialogProps) {
+function AddRelationshipDialog({ open, onOpenChange, character, otherCharacters, startChapterId, startChapterLabel }: AddRelationshipDialogProps) {
   const [targetId, setTargetId] = useState('')
   const [label, setLabel] = useState('')
   const [strength, setStrength] = useState<RelationshipStrength>('moderate')
@@ -46,6 +50,7 @@ function AddRelationshipDialog({ open, onOpenChange, character, otherCharacters 
       sentiment,
       description,
       isBidirectional: true,
+      startChapterId,
     })
     setSaving(false)
     setTargetId('')
@@ -95,6 +100,11 @@ function AddRelationshipDialog({ open, onOpenChange, character, otherCharacters 
               </Select>
             </div>
           </div>
+          {startChapterLabel && (
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              This relationship will start at <span className="font-medium text-[hsl(var(--foreground))]">{startChapterLabel}</span> and won't appear in earlier chapters.
+            </p>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={!targetId || !label.trim() || saving}>
@@ -114,9 +124,26 @@ interface RelationshipsTabProps {
 export function RelationshipsTab({ character }: RelationshipsTabProps) {
   const relationships = useCharacterRelationships(character.id)
   const allChars = useCharacters(character.worldId)
+  const allChapters = useWorldChapters(character.worldId)
+  const activeChapterId = useActiveChapterId()
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  const chapterById = new Map(allChapters.map((c) => [c.id, c]))
+  const activeChapter = activeChapterId ? chapterById.get(activeChapterId) : undefined
+  const activeChapterNum = activeChapter?.number ?? null
+
   const otherChars = allChars.filter((c) => c.id !== character.id)
+
+  // When a chapter is active, hide relationships that haven't started yet
+  const visibleRelationships = activeChapterNum === null
+    ? relationships
+    : relationships.filter((r) => {
+        if (!r.startChapterId) return true
+        const startChapter = chapterById.get(r.startChapterId)
+        return startChapter ? startChapter.number <= activeChapterNum : true
+      })
+
+  const startChapterLabel = activeChapter ? `Ch. ${activeChapter.number} — ${activeChapter.title}` : null
 
   function getOtherChar(rel: typeof relationships[0]) {
     const otherId = rel.characterAId === character.id ? rel.characterBId : rel.characterAId
@@ -131,19 +158,27 @@ export function RelationshipsTab({ character }: RelationshipsTabProps) {
         </Button>
       </div>
 
-      {relationships.length === 0 ? (
-        <p className="py-4 text-center text-sm text-[hsl(var(--muted-foreground))]">No relationships yet.</p>
+      {visibleRelationships.length === 0 ? (
+        <p className="py-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
+          {activeChapter ? 'No relationships in this chapter yet.' : 'No relationships yet.'}
+        </p>
       ) : (
-        relationships.map((rel) => {
+        visibleRelationships.map((rel) => {
           const other = getOtherChar(rel)
+          const startCh = rel.startChapterId ? chapterById.get(rel.startChapterId) : undefined
           return (
             <div key={rel.id} className="flex items-start justify-between rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-3">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">{other?.name ?? 'Unknown'}</span>
                   <span className={cn('text-xs capitalize font-medium', SENTIMENT_COLORS[rel.sentiment])}>
                     {rel.label}
                   </span>
+                  {startCh && (
+                    <span className="text-[10px] text-[hsl(var(--muted-foreground))] border border-[hsl(var(--border))] rounded px-1">
+                      from Ch. {startCh.number}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-[hsl(var(--muted-foreground))] capitalize mt-0.5">
                   {rel.strength} · {rel.sentiment}
@@ -170,6 +205,8 @@ export function RelationshipsTab({ character }: RelationshipsTabProps) {
         onOpenChange={setDialogOpen}
         character={character}
         otherCharacters={otherChars}
+        startChapterId={activeChapterId}
+        startChapterLabel={startChapterLabel}
       />
     </div>
   )

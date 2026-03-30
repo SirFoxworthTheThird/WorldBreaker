@@ -1,7 +1,8 @@
 import { db } from '@/db/database'
 import type {
   World, MapLayer, LocationMarker, Character, Item,
-  CharacterSnapshot, CharacterMovement, ItemPlacement, Relationship, Timeline, Chapter, WorldEvent,
+  CharacterSnapshot, CharacterMovement, ItemPlacement, Relationship, RelationshipSnapshot,
+  Timeline, Chapter, WorldEvent,
 } from '@/types'
 
 const EXPORT_VERSION = 1
@@ -26,10 +27,12 @@ export interface WorldExportFile {
   characterMovements: CharacterMovement[]
   itemPlacements: ItemPlacement[]
   relationships: Relationship[]
+  relationshipSnapshots: RelationshipSnapshot[]
   timelines: Timeline[]
   chapters: Chapter[]
   events: WorldEvent[]
   blobs: BlobExport[]
+  relationshipPositions?: Record<string, { x: number; y: number }>
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -64,6 +67,7 @@ export async function exportWorld(worldId: string): Promise<void> {
     characterMovements,
     itemPlacements,
     relationships,
+    relationshipSnapshots,
     timelines,
     chapters,
     events,
@@ -78,6 +82,7 @@ export async function exportWorld(worldId: string): Promise<void> {
     db.characterMovements.where('worldId').equals(worldId).toArray(),
     db.itemPlacements.where('worldId').equals(worldId).toArray(),
     db.relationships.where('worldId').equals(worldId).toArray(),
+    db.relationshipSnapshots.where('worldId').equals(worldId).toArray(),
     db.timelines.where('worldId').equals(worldId).toArray(),
     db.chapters.where('worldId').equals(worldId).toArray(),
     db.events.where('worldId').equals(worldId).toArray(),
@@ -96,6 +101,12 @@ export async function exportWorld(worldId: string): Promise<void> {
     }))
   )
 
+  let relationshipPositions: Record<string, { x: number; y: number }> | undefined
+  try {
+    const raw = localStorage.getItem(`wb-rel-pos-${worldId}`)
+    if (raw) relationshipPositions = JSON.parse(raw)
+  } catch { /* ignore */ }
+
   const exportData: WorldExportFile = {
     version: EXPORT_VERSION,
     exportedAt: Date.now(),
@@ -108,10 +119,12 @@ export async function exportWorld(worldId: string): Promise<void> {
     characterMovements,
     itemPlacements,
     relationships,
+    relationshipSnapshots,
     timelines,
     chapters,
     events,
     blobs,
+    relationshipPositions,
   }
 
   const json = JSON.stringify(exportData)
@@ -145,6 +158,10 @@ function validateImport(data: unknown): asserts data is WorldExportFile {
     throw new Error('Invalid file: itemPlacements is not an array')
   }
   if (!d.itemPlacements) (d as Record<string, unknown>).itemPlacements = []
+  if (d.relationshipSnapshots !== undefined && !Array.isArray(d.relationshipSnapshots)) {
+    throw new Error('Invalid file: relationshipSnapshots is not an array')
+  }
+  if (!d.relationshipSnapshots) (d as Record<string, unknown>).relationshipSnapshots = []
 }
 
 export async function importWorld(file: File): Promise<string> {
@@ -159,7 +176,8 @@ export async function importWorld(file: File): Promise<string> {
 
   await db.transaction('rw', [
     db.worlds, db.mapLayers, db.locationMarkers, db.characters,
-    db.items, db.characterSnapshots, db.characterMovements, db.itemPlacements, db.relationships, db.timelines,
+    db.items, db.characterSnapshots, db.characterMovements, db.itemPlacements,
+    db.relationships, db.relationshipSnapshots, db.timelines,
     db.chapters, db.events, db.blobs,
   ], async () => {
     await db.worlds.put(data.world)
@@ -171,6 +189,7 @@ export async function importWorld(file: File): Promise<string> {
     await db.characterMovements.bulkPut(data.characterMovements)
     await db.itemPlacements.bulkPut(data.itemPlacements)
     await db.relationships.bulkPut(data.relationships)
+    await db.relationshipSnapshots.bulkPut(data.relationshipSnapshots)
     await db.timelines.bulkPut(data.timelines)
     await db.chapters.bulkPut(data.chapters)
     await db.events.bulkPut(data.events)
@@ -185,6 +204,10 @@ export async function importWorld(file: File): Promise<string> {
       })
     }
   })
+
+  if (data.relationshipPositions && typeof data.relationshipPositions === 'object') {
+    localStorage.setItem(`wb-rel-pos-${data.world.id}`, JSON.stringify(data.relationshipPositions))
+  }
 
   return data.world.id
 }

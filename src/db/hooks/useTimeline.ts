@@ -52,6 +52,14 @@ export function useChapters(timelineId: string | null) {
   )
 }
 
+export function useWorldChapters(worldId: string | null) {
+  return useLiveQuery(
+    () => (worldId ? db.chapters.where('worldId').equals(worldId).toArray() : []),
+    [worldId],
+    []
+  )
+}
+
 export function useChapter(id: string | null) {
   return useLiveQuery(() => (id ? db.chapters.get(id) : undefined), [id])
 }

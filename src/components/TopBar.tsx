@@ -1,8 +1,6 @@
 import { BookOpen, Map, Users, Network, LayoutDashboard, Package } from 'lucide-react'
-import { useAppStore, useActiveWorldId, useActiveChapterId } from '@/store'
+import { useActiveWorldId } from '@/store'
 import { useWorld } from '@/db/hooks/useWorlds'
-import { useTimelines, useChapters } from '@/db/hooks/useTimeline'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { ThemePicker } from './ThemePicker'
 import { useNavigate, NavLink, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -44,39 +42,6 @@ function NavIcons() {
   )
 }
 
-function ChapterSelector() {
-  const worldId = useActiveWorldId()
-  const activeChapterId = useActiveChapterId()
-  const { setActiveChapterId } = useAppStore()
-
-  const timelines = useTimelines(worldId)
-  const firstTimelineId = timelines[0]?.id ?? null
-  const chapters = useChapters(firstTimelineId)
-
-  if (!timelines.length) return null
-
-  return (
-    <div className="flex items-center gap-2">
-      <BookOpen className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
-      <Select
-        value={activeChapterId ?? ''}
-        onValueChange={(v) => setActiveChapterId(v || null)}
-      >
-        <SelectTrigger className="w-44 h-8 text-xs">
-          <SelectValue placeholder="No chapter selected" />
-        </SelectTrigger>
-        <SelectContent>
-          {chapters.map((ch) => (
-            <SelectItem key={ch.id} value={ch.id}>
-              Ch. {ch.number} — {ch.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  )
-}
-
 export function TopBar() {
   const worldId = useActiveWorldId()
   const world = useWorld(worldId)
@@ -110,10 +75,9 @@ export function TopBar() {
         </div>
       )}
 
-      {/* Right: theme + chapter */}
+      {/* Right: theme */}
       <div className="ml-auto flex items-center gap-2">
         <ThemePicker />
-        <ChapterSelector />
       </div>
     </header>
   )

@@ -33,10 +33,12 @@ export async function createRelationship(data: {
   sentiment: RelationshipSentiment
   description: string
   isBidirectional: boolean
+  startChapterId?: string | null
 }): Promise<Relationship> {
   const now = Date.now()
   const rel: Relationship = {
     id: generateId(),
+    startChapterId: null,
     ...data,
     createdAt: now,
     updatedAt: now,
@@ -50,5 +52,8 @@ export async function updateRelationship(id: string, data: Partial<Omit<Relation
 }
 
 export async function deleteRelationship(id: string) {
-  await db.relationships.delete(id)
+  await db.transaction('rw', [db.relationships, db.relationshipSnapshots], async () => {
+    await db.relationships.delete(id)
+    await db.relationshipSnapshots.where('relationshipId').equals(id).delete()
+  })
 }

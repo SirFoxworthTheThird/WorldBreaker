@@ -1,11 +1,9 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  type Node,
-  type Edge,
   type NodeTypes,
   type EdgeTypes,
   Handle,
@@ -17,14 +15,21 @@ import ReactFlow, {
   useEdgesState,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { X, Trash2, Network, Plus } from 'lucide-react'
+import { X, Trash2, Network, Plus, Check } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useCharacters } from '@/db/hooks/useCharacters'
 import { useRelationships, deleteRelationship } from '@/db/hooks/useRelationships'
+import { useBestRelationshipSnapshots, upsertRelationshipSnapshot } from '@/db/hooks/useRelationshipSnapshots'
+import { useChapter, useWorldChapters } from '@/db/hooks/useTimeline'
+import { useActiveChapterId } from '@/store'
 import { PortraitImage } from '@/components/PortraitImage'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EmptyState } from '@/components/EmptyState'
-import type { RelationshipSentiment } from '@/types'
+import type { RelationshipSentiment, RelationshipStrength, RelationshipSnapshot } from '@/types'
 
 // ─── Custom Node ────────────────────────────────────────────────────────────
 
@@ -60,15 +65,17 @@ function RelationshipEdge({
 }: {
   id: string
   sourceX: number; sourceY: number; targetX: number; targetY: number
-  data: { label: string; sentiment: RelationshipSentiment; onSelect: (id: string) => void }
+  data: { label: string; sentiment: RelationshipSentiment; isInherited: boolean; onSelect: (id: string) => void }
   markerEnd?: string
 }) {
   const [edgePath, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY })
   const color = SENTIMENT_COLORS[data.sentiment]
+  // Inherited edges are dashed to signal "carrying forward from a previous chapter"
+  const strokeDasharray = data.isInherited ? '6 3' : undefined
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={{ stroke: color, strokeWidth: 2 }} />
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={{ stroke: color, strokeWidth: 2, strokeDasharray }} />
       <EdgeLabelRenderer>
         <button
           style={{ transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)` }}
@@ -85,45 +92,149 @@ function RelationshipEdge({
 const nodeTypes: NodeTypes = { character: CharacterNode }
 const edgeTypes: EdgeTypes = { relationship: RelationshipEdge }
 
+// ─── Snapshot Editor ─────────────────────────────────────────────────────────
+
+function SnapshotEditor({
+  worldId, relationshipId, chapterId, base, existing,
+  onSaved,
+}: {
+  worldId: string
+  relationshipId: string
+  chapterId: string
+  base: { label: string; strength: RelationshipStrength; sentiment: RelationshipSentiment; description: string }
+  existing: RelationshipSnapshot | undefined
+  onSaved: () => void
+}) {
+  const [label, setLabel]               = useState(existing?.label       ?? base.label)
+  const [strength, setStrength]         = useState<RelationshipStrength>(existing?.strength   ?? base.strength)
+  const [sentiment, setSentiment]       = useState<RelationshipSentiment>(existing?.sentiment ?? base.sentiment)
+  const [description, setDescription]   = useState(existing?.description ?? base.description)
+  const [saving, setSaving]             = useState(false)
+
+  async function save() {
+    setSaving(true)
+    await upsertRelationshipSnapshot({ worldId, relationshipId, chapterId, label, strength, sentiment, description, isActive: true })
+    setSaving(false)
+    onSaved()
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Label</Label>
+        <Input className="h-7 text-xs" value={label} onChange={(e) => setLabel(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Strength</Label>
+        <Select value={strength} onValueChange={(v) => setStrength(v as RelationshipStrength)}>
+          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {(['weak', 'moderate', 'strong', 'bond'] as RelationshipStrength[]).map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Sentiment</Label>
+        <Select value={sentiment} onValueChange={(v) => setSentiment(v as RelationshipSentiment)}>
+          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {(['positive', 'neutral', 'negative', 'complex'] as RelationshipSentiment[]).map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">Description</Label>
+        <Textarea className="text-xs resize-none" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+      </div>
+      <Button size="sm" disabled={!label.trim() || saving} onClick={save}>
+        <Check className="h-3.5 w-3.5" /> Save
+      </Button>
+    </div>
+  )
+}
+
 // ─── Main View ──────────────────────────────────────────────────────────────
 
 export default function RelationshipGraphView() {
   const { worldId } = useParams<{ worldId: string }>()
   const navigate = useNavigate()
+  const activeChapterId = useActiveChapterId()
+  const activeChapter = useChapter(activeChapterId)
+  const allChapters = useWorldChapters(worldId ?? null)
   const characters = useCharacters(worldId ?? null)
   const relationships = useRelationships(worldId ?? null)
+  const snapshots = useBestRelationshipSnapshots(worldId ?? null, activeChapterId)
   const [selectedRelId, setSelectedRelId] = useState<string | null>(null)
+  const [editingSnapshot, setEditingSnapshot] = useState(false)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  // Sync nodes whenever characters change (fixes async Dexie load)
+  const posKey = `wb-rel-pos-${worldId ?? ''}`
+  const [persistedPositions] = useState<Record<string, { x: number; y: number }>>(() => {
+    try { return JSON.parse(localStorage.getItem(posKey) ?? '{}') } catch { return {} }
+  })
+  const posRef = useRef(persistedPositions)
+
+  // Sync nodes — preserve positions across renders and navigation
   useEffect(() => {
-    setNodes(
-      characters.map((c, i) => ({
+    setNodes((prev) => {
+      const livePos = new Map(prev.map((n) => [n.id, n.position]))
+      return characters.map((c, i) => ({
         id: c.id,
         type: 'character',
-        position: { x: (i % 4) * 220, y: Math.floor(i / 4) * 160 },
+        position: livePos.get(c.id) ?? posRef.current[c.id] ?? { x: (i % 4) * 220, y: Math.floor(i / 4) * 160 },
         data: { name: c.name, portraitImageId: c.portraitImageId },
       }))
-    )
+    })
   }, [characters, setNodes])
 
-  // Sync edges whenever relationships change
+  // Sync edges — filter by startChapterId, hide inactive, use snapshot data when available
   useEffect(() => {
-    setEdges(
-      relationships.map((r) => ({
+    const snapshotMap = new Map(snapshots.map((s) => [s.relationshipId, s]))
+    const chapterNumberById = new Map(allChapters.map((c) => [c.id, c.number]))
+    const activeChapterNum = activeChapterId ? (chapterNumberById.get(activeChapterId) ?? null) : null
+
+    const edges = relationships.flatMap((r) => {
+      // Hide relationships that haven't started yet in the active chapter
+      if (activeChapterNum !== null && r.startChapterId) {
+        const startNum = chapterNumberById.get(r.startChapterId)
+        if (startNum !== undefined && activeChapterNum < startNum) return []
+      }
+
+      const snap = snapshotMap.get(r.id)
+      const isActive = snap?.isActive ?? true
+      // Hide relationships explicitly ended via a snapshot
+      if (activeChapterId && !isActive) return []
+
+      return [{
         id: r.id,
         source: r.characterAId,
         target: r.characterBId,
         type: 'relationship',
-        data: { label: r.label, sentiment: r.sentiment, onSelect: setSelectedRelId },
-      }))
-    )
-  }, [relationships, setEdges])
+        data: {
+          label:       snap?.label     ?? r.label,
+          sentiment:   snap?.sentiment ?? r.sentiment,
+          isInherited: !!snap && !!activeChapterId && snap.chapterId !== activeChapterId,
+          onSelect:    (id: string) => {
+            setSelectedRelId(id)
+            setEditingSnapshot(!!activeChapterId && !snapshotMap.has(id))
+          },
+        },
+      }]
+    })
+    setEdges(edges)
+  }, [relationships, snapshots, setEdges, activeChapterId, allChapters])
 
-  const selectedRel = relationships.find((r) => r.id === selectedRelId)
-  const charA = characters.find((c) => c.id === selectedRel?.characterAId)
-  const charB = characters.find((c) => c.id === selectedRel?.characterBId)
+  const selectedRel      = relationships.find((r) => r.id === selectedRelId)
+  const selectedSnap     = snapshots.find((s) => s.relationshipId === selectedRelId)
+  const isSnapInherited  = !!selectedSnap && !!activeChapterId && selectedSnap.chapterId !== activeChapterId
+  const inheritedChapter = isSnapInherited ? allChapters.find((c) => c.id === selectedSnap!.chapterId) : undefined
+  const charA            = characters.find((c) => c.id === selectedRel?.characterAId)
+  const charB            = characters.find((c) => c.id === selectedRel?.characterBId)
 
   if (characters.length === 0) {
     return (
@@ -142,8 +253,8 @@ export default function RelationshipGraphView() {
   }
 
   return (
-    <div className="relative flex" style={{ height: 'calc(100vh - 3rem)' }}>
-      <div className="flex-1" style={{ background: 'hsl(222,47%,9%)' }}>
+    <div className="relative flex h-full">
+      <div className="flex-1 relative" style={{ background: 'hsl(222,47%,9%)' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -153,6 +264,10 @@ export default function RelationshipGraphView() {
           edgeTypes={edgeTypes}
           fitView
           style={{ background: 'hsl(222,47%,9%)' }}
+          onNodeDragStop={(_, node) => {
+            posRef.current = { ...posRef.current, [node.id]: node.position }
+            localStorage.setItem(posKey, JSON.stringify(posRef.current))
+          }}
         >
           <Background color="#334155" gap={20} />
           <Controls style={{ background: 'hsl(222,47%,14%)', borderColor: 'hsl(217,33%,22%)' }} />
@@ -167,37 +282,103 @@ export default function RelationshipGraphView() {
       {selectedRel && (
         <div className="flex w-64 shrink-0 flex-col border-l border-[hsl(var(--border))] bg-[hsl(var(--card))]">
           <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-4 py-3">
-            <span className="text-sm font-semibold">Relationship</span>
+            <div>
+              <span className="text-sm font-semibold">Relationship</span>
+              {activeChapter && (
+                <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-tight">
+                  Ch. {activeChapter.number} — {activeChapter.title}
+                </p>
+              )}
+            </div>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedRelId(null)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 p-4 flex flex-col gap-3">
-            <div className="text-center">
+
+          <div className="flex-1 overflow-auto p-4 flex flex-col gap-3">
+            {/* Characters */}
+            <div className="text-center text-sm">
               <p className="font-semibold">{charA?.name}</p>
-              <p className="text-xs text-[hsl(var(--muted-foreground))] my-1">↕ {selectedRel.label}</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] my-1">
+                ↕ {selectedSnap?.label ?? selectedRel.label}
+              </p>
               <p className="font-semibold">{charB?.name}</p>
             </div>
-            <div className="text-xs text-[hsl(var(--muted-foreground))] space-y-1">
-              <p><span className="font-medium text-[hsl(var(--foreground))]">Strength:</span> {selectedRel.strength}</p>
-              <p><span className="font-medium text-[hsl(var(--foreground))]">Sentiment:</span> {selectedRel.sentiment}</p>
-            </div>
-            {selectedRel.description && (
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">{selectedRel.description}</p>
+
+            {/* Inherited / base info */}
+            {!editingSnapshot && (
+              <>
+                {isSnapInherited && inheritedChapter && (
+                  <p className="text-[10px] italic text-[hsl(var(--muted-foreground))] text-center">
+                    Inherited from Ch. {inheritedChapter.number} — {inheritedChapter.title}
+                  </p>
+                )}
+                <div className="text-xs text-[hsl(var(--muted-foreground))] space-y-1">
+                  <p><span className="font-medium text-[hsl(var(--foreground))]">Strength:</span> {selectedSnap?.strength ?? selectedRel.strength}</p>
+                  <p><span className="font-medium text-[hsl(var(--foreground))]">Sentiment:</span> {selectedSnap?.sentiment ?? selectedRel.sentiment}</p>
+                  {(selectedSnap?.description || selectedRel.description) && (
+                    <p className="pt-1 text-[hsl(var(--foreground))]">{selectedSnap?.description || selectedRel.description}</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Chapter snapshot editor */}
+            {activeChapterId && editingSnapshot && worldId && (
+              <SnapshotEditor
+                worldId={worldId}
+                relationshipId={selectedRel.id}
+                chapterId={activeChapterId}
+                base={selectedRel}
+                existing={isSnapInherited ? undefined : selectedSnap}
+                onSaved={() => setEditingSnapshot(false)}
+              />
+            )}
+
+            {activeChapterId && !editingSnapshot && (
+              <Button size="sm" variant="outline" onClick={() => setEditingSnapshot(true)}>
+                {!selectedSnap ? 'Set for this chapter' : isSnapInherited ? 'Override for this chapter' : 'Edit chapter state'}
+              </Button>
             )}
           </div>
-          <div className="border-t border-[hsl(var(--border))] p-3">
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full gap-1.5"
-              onClick={async () => {
-                await deleteRelationship(selectedRel.id)
-                setSelectedRelId(null)
-              }}
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Delete
-            </Button>
+
+          <div className="border-t border-[hsl(var(--border))] p-3 flex flex-col gap-2">
+            {activeChapterId && worldId && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-1.5 text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive))] hover:text-white border-[hsl(var(--destructive))]/40"
+                onClick={async () => {
+                  await upsertRelationshipSnapshot({
+                    worldId,
+                    relationshipId: selectedRel.id,
+                    chapterId: activeChapterId,
+                    label:       selectedSnap?.label       ?? selectedRel.label,
+                    strength:    selectedSnap?.strength    ?? selectedRel.strength,
+                    sentiment:   selectedSnap?.sentiment   ?? selectedRel.sentiment,
+                    description: selectedSnap?.description ?? selectedRel.description,
+                    isActive: false,
+                  })
+                  setSelectedRelId(null)
+                  setEditingSnapshot(false)
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> End in this chapter
+              </Button>
+            )}
+            {!activeChapterId && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full gap-1.5"
+                onClick={async () => {
+                  await deleteRelationship(selectedRel.id)
+                  setSelectedRelId(null)
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete permanently
+              </Button>
+            )}
           </div>
         </div>
       )}

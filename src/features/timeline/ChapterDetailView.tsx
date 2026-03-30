@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Users } from 'lucide-react'
+import { ArrowLeft, Plus, Users, Network } from 'lucide-react'
 import { useChapter, useEvents } from '@/db/hooks/useTimeline'
 import { useChapterSnapshots } from '@/db/hooks/useSnapshots'
+import { useChapterRelationshipSnapshots } from '@/db/hooks/useRelationshipSnapshots'
 import { useCharacters } from '@/db/hooks/useCharacters'
+import { useRelationships } from '@/db/hooks/useRelationships'
 import { Button } from '@/components/ui/button'
 import { EventCard } from './EventCard'
 import { SnapshotCard } from './SnapshotCard'
@@ -15,7 +17,9 @@ export default function ChapterDetailView() {
   const chapter = useChapter(chapterId ?? null)
   const events = useEvents(chapterId ?? null)
   const snapshots = useChapterSnapshots(chapterId ?? null)
+  const relSnapshots = useChapterRelationshipSnapshots(chapterId ?? null)
   const characters = useCharacters(worldId ?? null)
+  const relationships = useRelationships(worldId ?? null)
   const [addEventOpen, setAddEventOpen] = useState(false)
 
   if (!chapter) {
@@ -65,7 +69,7 @@ export default function ChapterDetailView() {
         </div>
 
         {/* Character snapshots */}
-        <div className="flex w-80 shrink-0 flex-col">
+        <div className="flex w-80 shrink-0 flex-col overflow-hidden">
           <div className="flex items-center gap-2 border-b border-[hsl(var(--border))] px-4 py-2">
             <Users className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
             <span className="text-sm font-medium">Character States</span>
@@ -88,6 +92,39 @@ export default function ChapterDetailView() {
                     <span className="ml-auto italic">no snapshot</span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Relationship snapshots */}
+            {relationships.length > 0 && (
+              <div className="mt-2 border-t border-[hsl(var(--border))] pt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Network className="h-3.5 w-3.5 text-[hsl(var(--muted-foreground))]" />
+                  <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">Relationship States</span>
+                </div>
+                {relSnapshots.length === 0 ? (
+                  <p className="text-xs italic text-[hsl(var(--muted-foreground))]">No relationship states for this chapter.</p>
+                ) : (
+                  relSnapshots.map((rs) => {
+                    const rel = relationships.find((r) => r.id === rs.relationshipId)
+                    const charA = characters.find((c) => c.id === rel?.characterAId)
+                    const charB = characters.find((c) => c.id === rel?.characterBId)
+                    if (!rel || !charA || !charB) return null
+                    return (
+                      <div key={rs.id} className="mb-2 rounded border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-xs">
+                        <div className="flex items-center justify-between gap-1 font-medium">
+                          <span>{charA.name}</span>
+                          <span className="text-[hsl(var(--muted-foreground))]">↔</span>
+                          <span>{charB.name}</span>
+                          {!rs.isActive && (
+                            <span className="ml-1 rounded bg-[hsl(var(--muted))] px-1 py-0.5 text-[10px] text-[hsl(var(--muted-foreground))]">inactive</span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-[hsl(var(--muted-foreground))]">{rs.label} · {rs.sentiment} · {rs.strength}</p>
+                      </div>
+                    )
+                  })
+                )}
               </div>
             )}
           </div>

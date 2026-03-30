@@ -38,11 +38,17 @@ export async function updateCharacter(id: string, data: Partial<Omit<Character, 
 }
 
 export async function deleteCharacter(id: string) {
-  await db.transaction('rw', [db.characters, db.characterSnapshots, db.relationships], async () => {
+  await db.transaction('rw', [db.characters, db.characterSnapshots, db.relationships, db.relationshipSnapshots], async () => {
     await db.characters.delete(id)
     await db.characterSnapshots.where('characterId').equals(id).delete()
-    await db.relationships
+    // Collect relationship ids involving this character, then delete snapshots too
+    const relIds = (await db.relationships
       .filter((r) => r.characterAId === id || r.characterBId === id)
-      .delete()
+      .toArray()
+    ).map((r) => r.id)
+    await db.relationships.bulkDelete(relIds)
+    for (const relId of relIds) {
+      await db.relationshipSnapshots.where('relationshipId').equals(relId).delete()
+    }
   })
 }

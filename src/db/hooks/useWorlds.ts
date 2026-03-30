@@ -32,8 +32,8 @@ export async function updateWorld(id: string, data: Partial<Omit<World, 'id' | '
 export async function deleteWorld(id: string) {
   await db.transaction('rw', [
     db.worlds, db.mapLayers, db.locationMarkers, db.characters,
-    db.items, db.characterSnapshots, db.relationships, db.timelines,
-    db.chapters, db.events, db.blobs,
+    db.items, db.characterSnapshots, db.relationships, db.relationshipSnapshots,
+    db.timelines, db.chapters, db.events, db.blobs,
   ], async () => {
     await db.worlds.delete(id)
     await db.mapLayers.where('worldId').equals(id).delete()
@@ -42,6 +42,7 @@ export async function deleteWorld(id: string) {
     await db.items.where('worldId').equals(id).delete()
     await db.characterSnapshots.where('worldId').equals(id).delete()
     await db.relationships.where('worldId').equals(id).delete()
+    await db.relationshipSnapshots.where('worldId').equals(id).delete()
     await db.timelines.where('worldId').equals(id).delete()
     await db.chapters.where('worldId').equals(id).delete()
     await db.events.where('worldId').equals(id).delete()
