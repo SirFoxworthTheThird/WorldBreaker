@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
 @layer base {
   /* ── Default (Dark Slate) ── */
@@ -261,6 +262,126 @@
     --leaflet-muted: 30, 25%, 52%;
   }
 
+  /* ── Action (Gunmetal & Orange) ── */
+  .theme-action {
+    --background: 215 14% 8%;
+    --foreground: 210 12% 92%;
+    --card: 215 13% 12%;
+    --card-foreground: 210 12% 92%;
+    --popover: 215 14% 8%;
+    --popover-foreground: 210 12% 92%;
+    --primary: 210 12% 92%;
+    --primary-foreground: 215 14% 8%;
+    --secondary: 215 12% 16%;
+    --secondary-foreground: 210 12% 92%;
+    --muted: 215 12% 16%;
+    --muted-foreground: 215 10% 52%;
+    --accent: 215 14% 22%;
+    --accent-foreground: 210 12% 92%;
+    --destructive: 0 80% 45%;
+    --destructive-foreground: 210 12% 92%;
+    --border: 215 12% 20%;
+    --input: 215 12% 20%;
+    --ring: 24 100% 52%;
+    --radius: 0.125rem;
+    --font-body: Impact, 'Arial Black', 'Franklin Gothic Medium', sans-serif;
+    --font-heading: Impact, 'Arial Black', 'Franklin Gothic Medium', sans-serif;
+    --leaflet-bg: 215, 14%, 5%;
+    --leaflet-card: 215, 13%, 20%;
+    --leaflet-border: 215, 12%, 20%;
+    --leaflet-fg: 210, 12%, 92%;
+    --leaflet-muted: 215, 10%, 52%;
+    --tl-bg:             hsl(215, 14%, 7%);
+    --tl-border:         hsl(24, 100%, 40%);
+    --tl-accent:         hsl(24, 100%, 52%);
+    --tl-glow:           rgba(255, 120, 0, 0.78);
+    --tl-text:           hsl(210, 12%, 92%);
+    --tl-text-muted:     hsl(215, 10%, 48%);
+    --tl-callout-bg:     hsl(215, 14%, 10%);
+    --tl-callout-shadow: 0 -6px 32px rgba(255,100,0,0.22), 0 0 0 2px hsl(24,100%,40%);
+    --tl-backdrop:       none;
+  }
+
+  /* ── Noir (Moody Grayscale) ── */
+  .theme-noir {
+    --background: 0 0% 7%;
+    --foreground: 40 8% 88%;
+    --card: 0 0% 11%;
+    --card-foreground: 40 8% 88%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 40 8% 88%;
+    --primary: 40 8% 88%;
+    --primary-foreground: 0 0% 7%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 40 8% 88%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 48%;
+    --accent: 0 0% 19%;
+    --accent-foreground: 40 8% 88%;
+    --destructive: 0 65% 35%;
+    --destructive-foreground: 40 8% 88%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 40 8% 72%;
+    --radius: 0rem;
+    --font-body: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --leaflet-bg: 0, 0%, 4%;
+    --leaflet-card: 0, 0%, 19%;
+    --leaflet-border: 0, 0%, 20%;
+    --leaflet-fg: 40, 8%, 88%;
+    --leaflet-muted: 0, 0%, 48%;
+    --tl-bg:             hsl(0, 0%, 6%);
+    --tl-border:         hsl(0, 0%, 22%);
+    --tl-accent:         hsl(40, 8%, 75%);
+    --tl-glow:           rgba(200, 190, 175, 0.42);
+    --tl-text:           hsl(40, 8%, 88%);
+    --tl-text-muted:     hsl(0, 0%, 44%);
+    --tl-callout-bg:     hsl(0, 0%, 9%);
+    --tl-callout-shadow: 0 -12px 48px rgba(0,0,0,0.9), 0 0 0 1px hsl(0,0%,22%);
+    --tl-backdrop:       none;
+  }
+
+  /* ── Romance (Cream & Rose-Gold) ── */
+  .theme-romance {
+    --background: 340 18% 8%;
+    --foreground: 345 28% 92%;
+    --card: 340 16% 12%;
+    --card-foreground: 345 28% 92%;
+    --popover: 340 18% 8%;
+    --popover-foreground: 345 28% 92%;
+    --primary: 345 28% 92%;
+    --primary-foreground: 340 18% 8%;
+    --secondary: 340 14% 17%;
+    --secondary-foreground: 345 28% 92%;
+    --muted: 340 14% 17%;
+    --muted-foreground: 340 16% 52%;
+    --accent: 340 16% 22%;
+    --accent-foreground: 345 28% 92%;
+    --destructive: 0 75% 40%;
+    --destructive-foreground: 345 28% 92%;
+    --border: 340 22% 24%;
+    --input: 340 22% 24%;
+    --ring: 340 60% 62%;
+    --radius: 1rem;
+    --font-body: Georgia, 'Palatino Linotype', 'Times New Roman', serif;
+    --font-heading: Georgia, 'Palatino Linotype', 'Times New Roman', serif;
+    --leaflet-bg: 340, 18%, 5%;
+    --leaflet-card: 340, 16%, 20%;
+    --leaflet-border: 340, 22%, 24%;
+    --leaflet-fg: 345, 28%, 92%;
+    --leaflet-muted: 340, 16%, 52%;
+    --tl-bg:             hsl(340, 18%, 7%);
+    --tl-border:         hsl(340, 35%, 28%);
+    --tl-accent:         hsl(340, 60%, 62%);
+    --tl-glow:           rgba(220, 100, 140, 0.62);
+    --tl-text:           hsl(345, 28%, 92%);
+    --tl-text-muted:     hsl(340, 16%, 48%);
+    --tl-callout-bg:     hsl(340, 18%, 10%);
+    --tl-callout-shadow: 0 -6px 32px rgba(200,80,120,0.18), 0 0 0 1px hsl(340,35%,28%);
+    --tl-backdrop:       blur(8px) saturate(140%);
+  }
+
   * {
     border-color: hsl(var(--border));
     box-sizing: border-box;
@@ -349,9 +470,30 @@
   border-top: 6px solid var(--tl-callout-bg);
 }
 
+/* ── Per-theme tl-dot-active pulse speeds ── */
+.theme-action  .tl-dot-active { animation: tl-pulse-cyber 1.2s ease-in-out infinite; }
+.theme-noir    .tl-dot-active { animation: tl-pulse 4s ease-in-out infinite; }
+.theme-romance .tl-dot-active { animation: tl-pulse 3s ease-in-out infinite; }
+
 /* ── Cyberpunk neon glow accents ── */
 .theme-cyberpunk .leaflet-popup-content-wrapper {
   box-shadow: 0 0 12px hsl(300, 100%, 40%), 0 4px 16px rgba(0,0,0,0.8);
+}
+
+/* ── Action orange border glow ── */
+.theme-action .leaflet-popup-content-wrapper {
+  box-shadow: 0 0 8px rgba(255,120,0,0.35), 0 4px 16px rgba(0,0,0,0.8);
+  border-color: hsl(24, 100%, 40%);
+}
+
+/* ── Noir dramatic shadow ── */
+.theme-noir .leaflet-popup-content-wrapper {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 12px 48px rgba(0,0,0,0.95);
+}
+
+/* ── Romance rose glow ── */
+.theme-romance .leaflet-popup-content-wrapper {
+  box-shadow: 0 0 12px rgba(220,80,120,0.22), 0 4px 16px rgba(0,0,0,0.6);
 }
 
 /* ── Sci-Fi scan line texture ── */
@@ -368,4 +510,65 @@
   );
   pointer-events: none;
   z-index: 9999;
+}
+
+/* ── Action diagonal crosshatch texture ── */
+.theme-action body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 120, 0, 0.016) 4px,
+    rgba(255, 120, 0, 0.016) 5px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Noir vignette ── */
+.theme-noir body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,0.68) 100%);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Romance soft rose glow ── */
+.theme-romance body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 25% 15%, rgba(220,80,120,0.07) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Action: sharp italic headers ── */
+.theme-action h1,
+.theme-action h2,
+.theme-action h3 {
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+/* ── Noir: high-contrast dramatic text ── */
+.theme-noir h1,
+.theme-noir h2,
+.theme-noir h3 {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ── Romance: light-weight elegant text ── */
+.theme-romance h1,
+.theme-romance h2,
+.theme-romance h3 {
+  font-weight: 400;
+  letter-spacing: 0.03em;
 }

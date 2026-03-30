@@ -20,7 +20,7 @@ interface MapSlice {
   resetMapHistory: (rootId: string) => void
 }
 
-export type AppTheme = 'default' | 'fantasy' | 'scifi' | 'cyberpunk' | 'horror' | 'western'
+export type AppTheme = 'default' | 'fantasy' | 'scifi' | 'cyberpunk' | 'horror' | 'western' | 'action' | 'noir' | 'romance'
 
 interface UISlice {
   sidebarOpen: boolean

@@ -8,20 +8,112 @@ A visual story-tracking web app for writers who need to keep track of characters
 
 ## What it does
 
-When writing long stories it's easy to lose track of where a character is, what they're carrying, or who they know. WorldBreaker solves this by giving you a visual workspace tied to a "chapter cursor" — every piece of state (character location, inventory, status) is recorded per chapter, so you can jump to any point in your story and see an accurate snapshot of the world.
+When writing long stories it's easy to lose track of where a character is, what they're carrying, or who they know. WorldBreaker solves this by giving you a visual workspace tied to a **chapter cursor** — every piece of state (character location, inventory, relationships, status) is recorded per chapter, so you can jump to any point in your story and instantly see an accurate snapshot of the world.
 
-### Features
+---
 
-- **Multi-world support** — manage separate stories/worlds independently, each with their own data
-- **Custom image maps** — upload any image as a map (hand-drawn, scanned, or digital). Supports nested sub-maps: e.g. a world map → region map → city map
-- **Map tree navigation** — browse the full map hierarchy in a sidebar tree and jump to any layer instantly
-- **Character tracking** — per-chapter snapshots of each character's location, inventory, alive/dead status, and notes
-- **Drag-and-drop character placement** — drag characters from the sidebar onto map location markers to place them
-- **Sub-map visibility** — characters inside a sub-map are shown on parent maps at the entry-point marker, so you always know roughly where everyone is
-- **Relationship graph** — visual network of character relationships powered by ReactFlow, with sentiment colours (positive / neutral / negative / complex) and strength
-- **Timeline & events** — organise chapters into timelines, attach events to chapters, and assign characters to events
-- **Export / import** — export any world to a `.wbk` file (JSON + base64 images) and import it back, so your data survives browser cache clears
-- **Fully local** — all data is stored in the browser's IndexedDB via Dexie.js. No account, no server, no internet required
+## Screenshots
+
+### Map Explorer
+![Map with character pins and chapter timeline](screenshots/maps_1.png)
+*Upload any image as a map. Characters appear as pins at their chapter-specific locations. The themed timeline bar runs along the bottom with a callout showing the active chapter.*
+
+![Sub-map with movement trails and character panel](screenshots/maps_2.png)
+*Drill into sub-maps (e.g. world → region → city). Character movement paths are drawn between waypoints. Selecting a character opens a snapshot panel showing their inventory, location, status, and relationships.*
+
+### Characters
+![Character roster](screenshots/characters.png)
+*The character roster shows every character with their portrait, current location, and alive/dead status for the active chapter.*
+
+![Character detail view](screenshots/character_details.png)
+*Each character has four tabs: Overview (bio), Current State (chapter snapshot — location, inventory, status), History (all snapshots across chapters), and Relationships.*
+
+### Timeline
+![Timeline with chapters and events](screenshots/chapters.png)
+*The timeline organises chapters in sequence. Each chapter can have events attached, with involved characters listed. Set any chapter as "active" to filter every other view to that point in time.*
+
+### Relationship Graph
+![Relationship graph](screenshots/relationships.png)
+*A ReactFlow-powered network of character relationships. Edge colours indicate sentiment (green = positive, grey = neutral, red = negative, yellow = complex). Relationships can be chapter-scoped so they only appear from the chapter they were created.*
+
+---
+
+## Features
+
+### Worlds
+- **Multi-world support** — manage completely separate stories, each with their own characters, maps, timelines, items, and relationships
+- **World dashboard** — overview of all your worlds with create, export, and delete actions
+
+### Chapter Timeline Bar
+- **Fixed bottom overlay** — a persistent themed timeline bar visible on every non-dashboard page
+- **Chapter markers** — dot-track with one marker per chapter; click to set the active chapter cursor
+- **Callout** — a floating info card appears above the active marker showing the chapter title, synopsis, and prev/next navigation chevrons; auto-dismisses after 4 seconds
+- **"All" deselect** — a button on the left of the bar resets the chapter cursor to show unfiltered data
+- **Theme-aware** — the bar's colours, fonts, glow effects, and pulse animations all update instantly with the active theme
+
+### Maps
+- **Custom image maps** — upload any image (PNG, JPG, hand-drawn, scanned) as a map using Leaflet with `CRS.Simple`
+- **Nested sub-maps** — link a location marker to a child map (e.g. world → region → city), with full drill-down navigation and a breadcrumb trail
+- **Map tree sidebar** — browse the full map hierarchy and jump to any layer instantly
+- **Location markers** — place named markers on the map by clicking; each can have a description, icon type, and a linked sub-map
+- **Character pins** — characters are shown on the map at their chapter-specific location; characters inside a sub-map appear on parent maps at the entry-point marker
+- **Drag-and-drop placement** — drag character cards from the sidebar directly onto a location marker to place them
+- **Movement trails** — per-chapter waypoints are recorded and drawn as coloured paths on the map
+- **Item placement** — place world items at specific locations per chapter; items show their image thumbnail in the location panel and the items sidebar
+- **Character snapshot panel** — click any character pin to open a sidebar with their portrait, status, location, inventory (with item images), and relationships
+
+### Characters
+- **Character roster** — searchable grid of all characters with portrait images and chapter-aware location/status
+- **Per-chapter snapshots** — record each character's alive/dead status, current location, inventory, status notes, and inventory notes independently per chapter
+- **Portrait images** — upload a portrait for each character; shown throughout the app (roster, map pins, relationship graph, timeline cards)
+- **History tab** — view all snapshots across every chapter in chronological order
+- **Overview tab** — bio, role, and general character notes
+
+### Relationships
+- **Visual relationship graph** — ReactFlow canvas showing the full network of character relationships
+- **Sentiment & strength** — each relationship has a sentiment (positive / neutral / negative / complex) shown as edge colour, and a strength (weak / moderate / strong / bond)
+- **Chapter-scoped relationships** — relationships have a `startChapterId` so they only appear from the chapter they were created; earlier chapters show a filtered graph
+- **Snapshot inheritance** — relationship state carries forward automatically from the most recent chapter snapshot ≤ the active chapter
+- **Inherited state indicator** — edges from an inherited (not current-chapter) snapshot are shown as dashed lines with a note in the sidebar
+- **Per-chapter overrides** — click any relationship edge to open a sidebar where you can set or override the relationship state for the active chapter
+- **End a relationship** — mark a relationship as inactive in a specific chapter without deleting it globally
+
+### Timeline
+- **Timelines and chapters** — organise your story into one or more timelines, each with ordered chapters
+- **Chapter events** — attach named events to any chapter with a synopsis and involved characters
+- **Chapter snapshot cards** — the timeline view shows a snapshot card per character per chapter, including location, inventory items (with images), and status
+
+### Items
+- **Item catalogue** — a world-level catalogue of all props, artefacts, weapons, and key items
+- **Item images** — upload an image for each item; shown everywhere items appear (roster cards, inventory lists, location panels, map sidebar, timeline snapshot cards)
+- **Per-chapter placement** — place items at map locations or in character inventories per chapter; moving an item removes it from its previous owner/location automatically
+- **Item detail view** — name, description, icon type, image upload, and a full edit/delete interface
+
+### Themes
+Nine visual profiles that instantly transform the entire app — backgrounds, borders, fonts, border-radius, glow intensities, timeline animations, map callouts, and character panels all update together:
+
+| Theme | Palette | Font | Character |
+|---|---|---|---|
+| 🌑 Dark Slate | Slate-900 blues | Inter sans-serif | Professional default |
+| ⚔️ Fantasy | Parchment & gold | Palatino serif | Ornate amber glows |
+| 🚀 Sci-Fi | Frosted glass & cyan | Monospace | Backdrop blur, scan lines |
+| 🤖 Cyberpunk | Neon pink & yellow | Monospace bold | Hard edges, fast flicker pulse |
+| 🩸 Horror | Charcoal & blood-red | Palatino serif | Deep vignette, slow throb |
+| 🤠 Western | Leather & copper | Palatino serif | Warm sepia shadows |
+| 💥 Action | Gunmetal & orange | Impact bold-italic | Diagonal texture, sharp frames |
+| 🎬 Noir | Monochrome near-black | Playfair Display serif | Corner vignette, dramatic shadows |
+| 🌹 Romance | Dark rose & rose-gold | Georgia serif | Soft glow, very rounded corners |
+
+### Export / Import
+- **`.wbk` format** — export any world to a single JSON file containing all data and base64-encoded images
+- **Full fidelity** — characters, maps, location markers, timelines, chapters, events, items, relationships, snapshots, movement paths, images, and relationship graph positions are all included
+- **Backward compatible** — older `.wbk` files missing newer fields (e.g. `startChapterId`) are normalised on import
+- **One-click restore** — import a `.wbk` file to restore an entire world, including all images
+
+### Data & Privacy
+- **Fully local** — all data lives in the browser's IndexedDB via Dexie.js; nothing is sent to any server
+- **No account required** — open the app and start writing
+- **Offline capable** — works with no internet connection (after initial load)
 
 ---
 
@@ -36,8 +128,9 @@ When writing long stories it's easy to lose track of where a character is, what 
 | Routing | React Router v7 |
 | Maps | Leaflet + react-leaflet (`CRS.Simple` for custom images) |
 | Relationship graph | ReactFlow v11 |
-| Styling | Tailwind CSS v4 |
+| Styling | Tailwind CSS v4 + CSS custom properties |
 | Icons | Lucide React |
+| Testing | Vitest + fake-indexeddb |
 
 ---
 
@@ -59,6 +152,9 @@ No build step needed for development. Data is stored locally in your browser —
 # Type-check
 npx tsc --noEmit
 
+# Run tests
+npm run test
+
 # Production build
 npm run build
 ```
@@ -68,13 +164,15 @@ npm run build
 ## How to use
 
 1. **Create a world** from the home screen
-2. **Upload a map** image (PNG, JPG, etc.) in the Maps section
-3. **Add location markers** by clicking "Add Location" then clicking on the map
-4. **Add characters** in the Characters section
-5. **Create a chapter** in the Timeline section (or inline from the map)
-6. **Select the chapter** in the top bar — this sets the "time cursor" for all views
-7. **Place characters** on the map by opening the Characters panel and dragging them onto a location marker
-8. **Add sub-maps** by selecting a location marker and uploading a new map image to link to it
+2. **Upload a map** image (PNG, JPG, etc.) in the Maps tab
+3. **Add location markers** by clicking on the map
+4. **Add characters** in the Characters tab
+5. **Create chapters** in the Timeline tab
+6. **Select a chapter** from the bottom timeline bar — this sets the time cursor for every view
+7. **Place characters** on the map by dragging them from the sidebar onto a location marker
+8. **Track inventory** in the character's Current State tab — items can also be placed at map locations
+9. **Build the relationship graph** in the Relationships tab — add relationships with sentiment and strength, scoped to the active chapter
+10. **Export your world** from the world card on the dashboard to create a `.wbk` backup file
 
 ---
 
@@ -83,39 +181,32 @@ npm run build
 ```
 src/
   features/
-    worlds/        # World selector, world cards, create dialog
-    maps/          # Leaflet map canvas, map tree nav, location panels
-    characters/    # Character roster, detail view, snapshot tabs
-    relationships/ # ReactFlow relationship graph
-    timeline/      # Timeline view, chapter rows, event cards
+    worlds/        # World selector, world cards, dashboard
+    maps/          # Leaflet canvas, map tree nav, location panels, character snapshot panel
+    characters/    # Character roster, detail view, snapshot tabs (state/history/relationships)
+    relationships/ # ReactFlow relationship graph, snapshot editor
+    timeline/      # Timeline view, chapter rows, event cards, snapshot cards
+    items/         # Item roster, item detail, create dialog
   db/
-    database.ts    # Dexie schema
+    database.ts    # Dexie schema and migrations (v1–v5)
     hooks/         # useLiveQuery hooks per entity
   store/
-    index.ts       # Zustand store (activeWorld, activeChapter, map history)
+    index.ts       # Zustand store (activeWorld, activeChapter, theme, map history)
   lib/
-    exportImport.ts # .wbk export/import
-  components/      # Shared UI components
-  types/           # TypeScript interfaces
+    exportImport.ts # .wbk export/import with base64 blob serialisation
+  components/
+    ChapterTimelineBar.tsx  # Fixed bottom themed timeline overlay
+    ThemePicker.tsx         # Theme switcher + ThemeProvider
+    PortraitImage.tsx       # Blob-backed image with fallback icon
+    AppShell.tsx            # Layout shell with TopBar and timeline
+  types/           # TypeScript interfaces for all entities
 ```
 
 ---
 
 ## AI generation note
 
-This entire codebase — every component, hook, type, and configuration file — was written by **Claude Code** (model: `claude-sonnet-4-6`) in a single conversational session. The human's role was to describe features, report bugs, and request changes in plain language. No code was written manually.
-
-The development conversation covered:
-- Initial scaffolding and architecture decisions
-- Leaflet integration with `CRS.Simple` for non-geographic image maps
-- Debugging stale closure issues in Leaflet event handlers
-- Replacing Radix UI Dialog and Select with custom `createPortal` implementations (required due to Tailwind v4 animation class incompatibility)
-- Sub-map drill-down navigation with history stack
-- Chapter-based character snapshots as the core data model
-- ReactFlow relationship graph with async Dexie data loading
-- Export/import system with base64-encoded image blobs
-- Drag-and-drop character placement on maps
-- Cross-layer character pin resolution (show characters from sub-maps on parent maps)
+This entire codebase — every component, hook, type, test, and configuration file — was written by **Claude Code** (model: `claude-sonnet-4-6`) through conversational prompts. No code was written manually. The human's role was to describe features, report bugs, and request changes in plain language.
 
 ---
 

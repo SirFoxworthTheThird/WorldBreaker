@@ -10,6 +10,9 @@ const THEMES: { id: AppTheme; label: string; icon: string; swatch: string }[] = 
   { id: 'cyberpunk', label: 'Cyberpunk',   icon: '🤖', swatch: '#6b21a8' },
   { id: 'horror',    label: 'Horror',      icon: '🩸', swatch: '#5c0a0a' },
   { id: 'western',   label: 'Western',     icon: '🤠', swatch: '#5c3a1a' },
+  { id: 'action',    label: 'Action',      icon: '💥', swatch: '#b84a00' },
+  { id: 'noir',      label: 'Noir',        icon: '🎬', swatch: '#2a2a2a' },
+  { id: 'romance',   label: 'Romance',     icon: '🌹', swatch: '#8b2252' },
 ]
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
