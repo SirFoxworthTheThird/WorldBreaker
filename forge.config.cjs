@@ -1,7 +1,7 @@
 module.exports = {
   packagerConfig: {
     name: 'PlotWeave',
-    executableName: 'PlotWeave',
+    executableName: process.platform === 'linux' ? 'plotweave' : 'PlotWeave',
     icon: './public/favicon',
     asar: true,
     // Only include what the app needs to run — exclude source, tests, dev config
