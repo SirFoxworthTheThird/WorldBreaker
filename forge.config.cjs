@@ -29,6 +29,8 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'PlotWeave',
+        authors: 'PlotWeave',
+        description: 'A local story and world-building tracker',
       },
     },
     {
