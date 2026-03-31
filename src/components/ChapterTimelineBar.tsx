@@ -52,7 +52,8 @@ function markerBtnStyle(isActive: boolean): CSSProperties {
     flexDirection: 'column',
     alignItems: 'center',
     gap: '3px',
-    padding: '0 0.75rem',
+    padding: '0 0.5rem',
+    minWidth: '2rem',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
@@ -275,7 +276,7 @@ export function ChapterTimelineBar() {
         {/* Scrollable track */}
         <div ref={scrollerRef} style={trackScrollerStyle}>
           {/* Connecting line — sits behind the markers */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minWidth: 'max-content', flex: 1 }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
             {/* The line */}
             <div style={{
               position: 'absolute',
