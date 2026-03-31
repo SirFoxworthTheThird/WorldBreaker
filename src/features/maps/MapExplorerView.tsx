@@ -3,7 +3,7 @@ import L from 'leaflet'
 import { useParams } from 'react-router-dom'
 import {
   Plus, Upload, Users, Map as MapIcon, Trash2, Undo2,
-  ChevronRight, ChevronDown, MapPin, Package, Layers, Ruler, X, Route,
+  ChevronRight, ChevronDown, MapPin, Package, Layers, Ruler, X, Route, Search,
 } from 'lucide-react'
 import { useAppStore, useActiveMapLayerId, useActiveChapterId, useMapLayerHistory } from '@/store'
 import { useRootMapLayers, useMapLayer, useMapLayers, deleteMapLayer, updateMapLayer } from '@/db/hooks/useMapLayers'
@@ -110,6 +110,31 @@ function SidebarSection({
           : <ChevronRight className="h-3 w-3 shrink-0 text-[hsl(var(--muted-foreground))]" />}
       </button>
       {open && children}
+    </div>
+  )
+}
+
+// ─── SidebarSearch ───────────────────────────────────────────────────────────
+
+function SidebarSearch({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative mx-2 mb-1.5 mt-0.5">
+      <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search..."
+        className="w-full rounded border border-[hsl(var(--border))] bg-[hsl(var(--background))] py-1 pl-6 pr-6 text-[11px] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:border-[hsl(var(--ring))] transition-colors"
+      />
+      {value && (
+        <button
+          onClick={() => onChange('')}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
     </div>
   )
 }
@@ -261,6 +286,10 @@ function CharactersSection({
   onFocus: (characterId: string) => void
 }) {
   const movements = useChapterMovements(worldId, activeChapterId)
+  const [search, setSearch] = useState('')
+  const filtered = search.trim()
+    ? characters.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    : characters
 
   return (
     <SidebarSection title="Characters" icon={Users} count={characters.length}>
@@ -269,11 +298,14 @@ function CharactersSection({
           Select a chapter to place characters.
         </p>
       )}
+      {characters.length > 0 && <SidebarSearch value={search} onChange={setSearch} />}
       <div className="flex flex-col gap-1 px-2 pb-2">
         {characters.length === 0 ? (
           <p className="px-1 py-1 text-xs italic text-[hsl(var(--muted-foreground))]">No characters yet.</p>
+        ) : filtered.length === 0 ? (
+          <p className="px-1 py-1 text-xs italic text-[hsl(var(--muted-foreground))]">No matches.</p>
         ) : (
-          characters.map((c) => {
+          filtered.map((c) => {
             const snap = snapshots.find((s) => s.characterId === c.id)
             const locationName = snap?.currentLocationMarkerId
               ? allMarkers.find((m) => m.id === snap.currentLocationMarkerId)?.name
@@ -366,13 +398,21 @@ function LocationsSection({
   onSelect: (id: string) => void
   onFocus: (marker: LocationMarker) => void
 }) {
+  const [search, setSearch] = useState('')
+  const filtered = search.trim()
+    ? markers.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()))
+    : markers
+
   return (
     <SidebarSection title="Locations" icon={MapPin} count={markers.length} defaultOpen={false}>
+      {markers.length > 0 && <SidebarSearch value={search} onChange={setSearch} />}
       <div className="flex flex-col py-1">
         {markers.length === 0 ? (
           <p className="px-3 py-2 text-xs italic text-[hsl(var(--muted-foreground))]">No locations on this map.</p>
+        ) : filtered.length === 0 ? (
+          <p className="px-3 py-2 text-xs italic text-[hsl(var(--muted-foreground))]">No matches.</p>
         ) : (
-          markers.map((m) => (
+          filtered.map((m) => (
             <button
               key={m.id}
               onClick={() => { onSelect(m.id); onFocus(m) }}
@@ -511,6 +551,10 @@ function ItemsSection({
 }) {
   const items = useItems(worldId)
   const placements = useChapterItemPlacements(activeChapterId)
+  const [search, setSearch] = useState('')
+  const filtered = search.trim()
+    ? items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
+    : items
 
   function getItemLocation(itemId: string): string | null {
     const placement = placements.find((p) => p.itemId === itemId)
@@ -529,11 +573,14 @@ function ItemsSection({
 
   return (
     <SidebarSection title="Items" icon={Package} count={items.length} defaultOpen={false}>
+      {items.length > 0 && <SidebarSearch value={search} onChange={setSearch} />}
       <div className="flex flex-col py-1">
         {items.length === 0 ? (
           <p className="px-3 py-2 text-xs italic text-[hsl(var(--muted-foreground))]">No items yet.</p>
+        ) : filtered.length === 0 ? (
+          <p className="px-3 py-2 text-xs italic text-[hsl(var(--muted-foreground))]">No matches.</p>
         ) : (
-          items.map((item) => (
+          filtered.map((item) => (
             <ItemRow
               key={item.id}
               item={item}
