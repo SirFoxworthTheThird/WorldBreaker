@@ -1,8 +1,8 @@
 import { db } from '@/db/database'
 import type {
   World, MapLayer, LocationMarker, Character, Item,
-  CharacterSnapshot, CharacterMovement, ItemPlacement, Relationship, RelationshipSnapshot,
-  Timeline, Chapter, WorldEvent,
+  CharacterSnapshot, CharacterMovement, ItemPlacement, LocationSnapshot, ItemSnapshot,
+  Relationship, RelationshipSnapshot, Timeline, Chapter, WorldEvent,
 } from '@/types'
 
 const EXPORT_VERSION = 1
@@ -26,6 +26,8 @@ export interface WorldExportFile {
   characterSnapshots: CharacterSnapshot[]
   characterMovements: CharacterMovement[]
   itemPlacements: ItemPlacement[]
+  locationSnapshots: LocationSnapshot[]
+  itemSnapshots: ItemSnapshot[]
   relationships: Relationship[]
   relationshipSnapshots: RelationshipSnapshot[]
   timelines: Timeline[]
@@ -66,6 +68,8 @@ export async function exportWorld(worldId: string): Promise<void> {
     characterSnapshots,
     characterMovements,
     itemPlacements,
+    locationSnapshots,
+    itemSnapshots,
     relationships,
     relationshipSnapshots,
     timelines,
@@ -81,6 +85,8 @@ export async function exportWorld(worldId: string): Promise<void> {
     db.characterSnapshots.where('worldId').equals(worldId).toArray(),
     db.characterMovements.where('worldId').equals(worldId).toArray(),
     db.itemPlacements.where('worldId').equals(worldId).toArray(),
+    db.locationSnapshots.where('worldId').equals(worldId).toArray(),
+    db.itemSnapshots.where('worldId').equals(worldId).toArray(),
     db.relationships.where('worldId').equals(worldId).toArray(),
     db.relationshipSnapshots.where('worldId').equals(worldId).toArray(),
     db.timelines.where('worldId').equals(worldId).toArray(),
@@ -118,6 +124,8 @@ export async function exportWorld(worldId: string): Promise<void> {
     characterSnapshots,
     characterMovements,
     itemPlacements,
+    locationSnapshots,
+    itemSnapshots,
     relationships,
     relationshipSnapshots,
     timelines,
@@ -162,6 +170,14 @@ function validateImport(data: unknown): asserts data is WorldExportFile {
     throw new Error('Invalid file: relationshipSnapshots is not an array')
   }
   if (!d.relationshipSnapshots) (d as Record<string, unknown>).relationshipSnapshots = []
+  if (d.locationSnapshots !== undefined && !Array.isArray(d.locationSnapshots)) {
+    throw new Error('Invalid file: locationSnapshots is not an array')
+  }
+  if (!d.locationSnapshots) (d as Record<string, unknown>).locationSnapshots = []
+  if (d.itemSnapshots !== undefined && !Array.isArray(d.itemSnapshots)) {
+    throw new Error('Invalid file: itemSnapshots is not an array')
+  }
+  if (!d.itemSnapshots) (d as Record<string, unknown>).itemSnapshots = []
 }
 
 function normalizeImport(data: WorldExportFile): void {
@@ -196,6 +212,7 @@ export async function importWorld(file: File): Promise<string> {
   await db.transaction('rw', [
     db.worlds, db.mapLayers, db.locationMarkers, db.characters,
     db.items, db.characterSnapshots, db.characterMovements, db.itemPlacements,
+    db.locationSnapshots, db.itemSnapshots,
     db.relationships, db.relationshipSnapshots, db.timelines,
     db.chapters, db.events, db.blobs,
   ], async () => {
@@ -207,6 +224,8 @@ export async function importWorld(file: File): Promise<string> {
     await db.characterSnapshots.bulkPut(data.characterSnapshots)
     await db.characterMovements.bulkPut(data.characterMovements)
     await db.itemPlacements.bulkPut(data.itemPlacements)
+    await db.locationSnapshots.bulkPut(data.locationSnapshots)
+    await db.itemSnapshots.bulkPut(data.itemSnapshots)
     await db.relationships.bulkPut(data.relationships)
     await db.relationshipSnapshots.bulkPut(data.relationshipSnapshots)
     await db.timelines.bulkPut(data.timelines)

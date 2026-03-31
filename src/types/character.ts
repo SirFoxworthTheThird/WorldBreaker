@@ -46,3 +46,25 @@ export interface CharacterSnapshot {
   createdAt: number
   updatedAt: number
 }
+
+export interface LocationSnapshot {
+  id: string
+  worldId: string
+  locationMarkerId: string
+  chapterId: string
+  status: string
+  notes: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ItemSnapshot {
+  id: string
+  worldId: string
+  itemId: string
+  chapterId: string
+  condition: string
+  notes: string
+  createdAt: number
+  updatedAt: number
+}

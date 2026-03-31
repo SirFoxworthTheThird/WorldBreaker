@@ -73,7 +73,10 @@ export async function createChapter(data: Pick<Chapter, 'worldId' | 'timelineId'
     updatedAt: now,
   }
 
-  await db.transaction('rw', [db.chapters, db.characterSnapshots, db.itemPlacements], async () => {
+  await db.transaction('rw', [
+    db.chapters, db.characterSnapshots, db.itemPlacements,
+    db.locationSnapshots, db.itemSnapshots,
+  ], async () => {
     await db.chapters.add(chapter)
 
     // Find the previous chapter in the same timeline to inherit state from
@@ -84,9 +87,11 @@ export async function createChapter(data: Pick<Chapter, 'worldId' | 'timelineId'
     const prev = siblings[siblings.length - 1]
     if (!prev) return
 
-    const [prevSnapshots, prevPlacements] = await Promise.all([
+    const [prevSnapshots, prevPlacements, prevLocSnaps, prevItemSnaps] = await Promise.all([
       db.characterSnapshots.where('chapterId').equals(prev.id).toArray(),
       db.itemPlacements.where('chapterId').equals(prev.id).toArray(),
+      db.locationSnapshots.where('chapterId').equals(prev.id).toArray(),
+      db.itemSnapshots.where('chapterId').equals(prev.id).toArray(),
     ])
 
     if (prevSnapshots.length > 0) {
@@ -99,6 +104,16 @@ export async function createChapter(data: Pick<Chapter, 'worldId' | 'timelineId'
         prevPlacements.map((p) => ({ ...p, id: generateId(), chapterId: chapter.id, createdAt: now, updatedAt: now }))
       )
     }
+    if (prevLocSnaps.length > 0) {
+      await db.locationSnapshots.bulkAdd(
+        prevLocSnaps.map((s) => ({ ...s, id: generateId(), chapterId: chapter.id, createdAt: now, updatedAt: now }))
+      )
+    }
+    if (prevItemSnaps.length > 0) {
+      await db.itemSnapshots.bulkAdd(
+        prevItemSnaps.map((s) => ({ ...s, id: generateId(), chapterId: chapter.id, createdAt: now, updatedAt: now }))
+      )
+    }
   })
 
   return chapter
@@ -109,10 +124,16 @@ export async function updateChapter(id: string, data: Partial<Omit<Chapter, 'id'
 }
 
 export async function deleteChapter(id: string) {
-  await db.transaction('rw', [db.chapters, db.events, db.characterSnapshots], async () => {
+  await db.transaction('rw', [
+    db.chapters, db.events, db.characterSnapshots,
+    db.itemPlacements, db.locationSnapshots, db.itemSnapshots,
+  ], async () => {
     await db.chapters.delete(id)
     await db.events.where('chapterId').equals(id).delete()
     await db.characterSnapshots.where('chapterId').equals(id).delete()
+    await db.itemPlacements.where('chapterId').equals(id).delete()
+    await db.locationSnapshots.where('chapterId').equals(id).delete()
+    await db.itemSnapshots.where('chapterId').equals(id).delete()
   })
 }
 

@@ -14,6 +14,8 @@ import { useBestSnapshots, useWorldSnapshots, upsertSnapshot } from '@/db/hooks/
 import { useChapterMovements, appendWaypoint, clearMovement, removeLastWaypoint } from '@/db/hooks/useMovements'
 import { useItems } from '@/db/hooks/useItems'
 import { useChapterItemPlacements } from '@/db/hooks/useItemPlacements'
+import { useItemSnapshot, upsertItemSnapshot } from '@/db/hooks/useItemSnapshots'
+import { useChapterLocationSnapshots } from '@/db/hooks/useLocationSnapshots'
 import type { CharacterPin, MovementLine, ScaleCalibrationPoint } from './LeafletMapCanvas'
 import { useBlobUrl, useWorldBlobUrls } from '@/db/hooks/useBlobs'
 import { Button } from '@/components/ui/button'
@@ -28,7 +30,7 @@ import { LocationDetailPanel } from './LocationDetailPanel'
 import { CharacterSnapshotPanel } from './CharacterSnapshotPanel'
 import { UploadMapDialog } from './UploadMapDialog'
 import { AddLocationDialog } from './AddLocationDialog'
-import type { Character, CharacterSnapshot, LocationMarker, MapLayer } from '@/types'
+import type { Character, CharacterSnapshot, Item, LocationMarker, MapLayer } from '@/types'
 import { pixelDist, pathPixelLength, formatDistance } from '@/lib/mapScale'
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
@@ -398,6 +400,102 @@ function LocationsSection({
 
 // ─── Items section ────────────────────────────────────────────────────────────
 
+const ITEM_CONDITIONS = ['intact', 'damaged', 'destroyed', 'lost', 'found', 'unknown']
+const CONDITION_COLORS: Record<string, string> = {
+  intact: '#34d399', damaged: '#fbbf24', destroyed: '#f87171',
+  lost: '#94a3b8', found: '#60a5fa', unknown: '#a78bfa',
+}
+
+function ItemRow({
+  item,
+  activeChapterId,
+  worldId,
+  locationName,
+  onFocus,
+}: {
+  item: Item
+  activeChapterId: string | null
+  worldId: string
+  locationName: string | null
+  onFocus: () => void
+}) {
+  const snap = useItemSnapshot(item.id, activeChapterId)
+  const [expanded, setExpanded] = useState(false)
+  const condition = snap?.condition ?? 'intact'
+
+  return (
+    <div className="mx-1 rounded-sm border border-transparent hover:border-[hsl(var(--border))] transition-colors">
+      <div
+        className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+        onClick={() => { onFocus(); setExpanded((v) => !v) }}
+      >
+        <PortraitImage
+          imageId={item.imageId}
+          fallbackIcon={Package}
+          className="h-5 w-5 rounded object-cover shrink-0"
+          fallbackClassName="h-5 w-5 rounded shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs">{item.name}</p>
+          {locationName && (
+            <p className="truncate text-[10px] opacity-60">{locationName}</p>
+          )}
+        </div>
+        {activeChapterId && (
+          <span
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ background: CONDITION_COLORS[condition] ?? '#94a3b8' }}
+            title={condition}
+          />
+        )}
+        {activeChapterId && (
+          <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        )}
+      </div>
+
+      {expanded && activeChapterId && (
+        <div className="flex flex-col gap-1.5 border-t border-[hsl(var(--border))] px-2 pb-2 pt-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-medium text-[hsl(var(--muted-foreground))] w-16 shrink-0">Condition</span>
+            <select
+              className="flex-1 rounded border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-1.5 py-0.5 text-[10px] text-[hsl(var(--foreground))]"
+              value={condition}
+              onChange={(e) =>
+                upsertItemSnapshot({
+                  worldId,
+                  itemId: item.id,
+                  chapterId: activeChapterId,
+                  condition: e.target.value,
+                  notes: snap?.notes ?? '',
+                })
+              }
+            >
+              {ITEM_CONDITIONS.map((c) => (
+                <option key={c} value={c} className="capitalize">{c}</option>
+              ))}
+            </select>
+          </div>
+          <textarea
+            className="w-full resize-none rounded border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-1.5 py-1 text-[10px] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+            rows={2}
+            placeholder="Chapter notes..."
+            value={snap?.notes ?? ''}
+            onChange={(e) =>
+              upsertItemSnapshot({
+                worldId,
+                itemId: item.id,
+                chapterId: activeChapterId,
+                condition: snap?.condition ?? 'intact',
+                notes: e.target.value,
+              })
+            }
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ItemsSection({
   worldId,
   activeChapterId,
@@ -435,29 +533,16 @@ function ItemsSection({
         {items.length === 0 ? (
           <p className="px-3 py-2 text-xs italic text-[hsl(var(--muted-foreground))]">No items yet.</p>
         ) : (
-          items.map((item) => {
-            const loc = getItemLocation(item.id)
-            return (
-              <button
-                key={item.id}
-                onClick={() => onFocus(item.id)}
-                className="flex items-center gap-2 px-3 py-1.5 text-left text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))] transition-colors rounded-sm mx-1"
-              >
-                <PortraitImage
-                  imageId={item.imageId}
-                  fallbackIcon={Package}
-                  className="h-5 w-5 rounded object-cover shrink-0"
-                  fallbackClassName="h-5 w-5 rounded shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs">{item.name}</p>
-                  {loc && (
-                    <p className="truncate text-[10px] opacity-60">{loc}</p>
-                  )}
-                </div>
-              </button>
-            )
-          })
+          items.map((item) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              activeChapterId={activeChapterId}
+              worldId={worldId}
+              locationName={getItemLocation(item.id)}
+              onFocus={() => onFocus(item.id)}
+            />
+          ))
         )}
       </div>
     </SidebarSection>
@@ -737,6 +822,7 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
   const blobUrls = useWorldBlobUrls(worldId)
   const movements = useChapterMovements(worldId, activeChapterId)
   const chapterPlacements = useChapterItemPlacements(activeChapterId)
+  const chapterLocSnaps = useChapterLocationSnapshots(activeChapterId)
 
   const [isDraggingCharacter, setIsDraggingCharacter] = useState(false)
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(null)
@@ -864,6 +950,12 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
     await appendWaypoint(worldId, characterId, activeChapterId, markerId)
   }
 
+  // Build markerId → status map for the active chapter
+  const locationStatusMap: Record<string, string> = {}
+  for (const snap of chapterLocSnaps) {
+    locationStatusMap[snap.locationMarkerId] = snap.status
+  }
+
   // Apply map filters
   const visibleCharIds = mapFilters.characterIds.size > 0 ? mapFilters.characterIds : null
   const displayedCharPins = !mapFilters.showCharacters ? []
@@ -983,6 +1075,7 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
             charPins={displayedCharPins}
             movementLines={displayedMovementLines}
             showSubMapLinks={mapFilters.showSubMapLinks}
+            locationStatuses={locationStatusMap}
             isDraggingCharacter={isDraggingCharacter}
             onMarkerClick={handleMarkerClick}
             onMapClick={(x, y) => { setPendingPos({ x, y }); setAddLocationOpen(true) }}

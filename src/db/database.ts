@@ -9,6 +9,8 @@ import type {
   CharacterSnapshot,
   CharacterMovement,
   ItemPlacement,
+  LocationSnapshot,
+  ItemSnapshot,
   Relationship,
   RelationshipSnapshot,
   Timeline,
@@ -33,6 +35,8 @@ class WorldBreakerDB extends Dexie {
   chapters!: EntityTable<Chapter, 'id'>
   events!: EntityTable<WorldEvent, 'id'>
   blobs!: EntityTable<BlobEntry, 'id'>
+  locationSnapshots!: EntityTable<LocationSnapshot, 'id'>
+  itemSnapshots!: EntityTable<ItemSnapshot, 'id'>
 
   constructor() {
     super('WorldBreakerDB')
@@ -77,6 +81,11 @@ class WorldBreakerDB extends Dexie {
         if (l.scalePixelsPerUnit === undefined) l.scalePixelsPerUnit = null
         if (l.scaleUnit === undefined) l.scaleUnit = null
       })
+    })
+
+    this.version(7).stores({
+      locationSnapshots: 'id, worldId, locationMarkerId, chapterId, [locationMarkerId+chapterId]',
+      itemSnapshots: 'id, worldId, itemId, chapterId, [itemId+chapterId]',
     })
   }
 }

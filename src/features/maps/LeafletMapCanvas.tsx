@@ -20,16 +20,35 @@ function escapeHtml(s: string): string {
 }
 
 // ── Location marker: pill badge  [◇ | Name · type] ───────────────────────────
-function makeLocationIcon(iconType: string, isLinked: boolean, name: string, highlighted = false) {
-  const typeColors: Record<string, string> = {
-    city: '#60a5fa', town: '#34d399', dungeon: '#f87171',
-    landmark: '#fbbf24', building: '#a78bfa', region: '#fb923c', custom: '#94a3b8',
-  }
-  const color   = typeColors[iconType] ?? '#94a3b8'
-  const pillH   = 32
-  const iconW   = 28          // diamond section width
-  const side    = 10          // diamond square side before rotation
-  const labelW  = Math.max(88, name.length * 8 + 16)
+const TYPE_COLORS: Record<string, string> = {
+  city: '#60a5fa', town: '#34d399', dungeon: '#f87171',
+  landmark: '#fbbf24', building: '#a78bfa', region: '#fb923c', custom: '#94a3b8',
+}
+const STATUS_COLORS: Record<string, string> = {
+  active:    '',          // falls back to type color
+  occupied:  '#fb923c',
+  sieged:    '#ef4444',
+  abandoned: '#94a3b8',
+  ruined:    '#d97706',
+  destroyed: '#dc2626',
+  unknown:   '#a78bfa',
+}
+
+function makeLocationIcon(
+  iconType: string,
+  isLinked: boolean,
+  name: string,
+  highlighted = false,
+  status = 'active',
+) {
+  const typeColor   = TYPE_COLORS[iconType] ?? '#94a3b8'
+  const statusColor = STATUS_COLORS[status] || typeColor
+  const color       = statusColor
+
+  const pillH  = 32
+  const iconW  = 28
+  const side   = 10
+  const labelW = Math.max(88, name.length * 8 + 16)
 
   const innerBg = isLinked
     ? `radial-gradient(circle at center,#fff 20%,${color} 55%)`
@@ -37,17 +56,27 @@ function makeLocationIcon(iconType: string, isLinked: boolean, name: string, hig
 
   const glowFilter = highlighted
     ? `drop-shadow(0 4px 8px rgba(0,0,0,0.9)) drop-shadow(0 0 6px ${color})`
-    : 'drop-shadow(0 4px 8px rgba(0,0,0,0.9))'
+    : status !== 'active'
+      ? `drop-shadow(0 4px 8px rgba(0,0,0,0.9)) drop-shadow(0 0 4px ${color}88)`
+      : 'drop-shadow(0 4px 8px rgba(0,0,0,0.9))'
+
+  // Status badge shown when not active
+  const statusBadge = status !== 'active'
+    ? `<span style="margin-left:4px;padding:0 4px;border-radius:2px;background:${color}22;border:1px solid ${color}88;color:${color};font-size:8px;font-family:${V.font};font-weight:600;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">${escapeHtml(status)}</span>`
+    : ''
 
   const diamond  = `<div style="width:${side}px;height:${side}px;background:${innerBg};border:1.5px solid ${V.frame};transform:rotate(45deg);flex-shrink:0;"></div>`
   const iconArea = `<div style="width:${iconW}px;height:${pillH}px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${diamond}</div>`
   const divider  = `<div style="width:1px;height:${Math.round(pillH * 0.65)}px;align-self:center;background:${V.frame};opacity:0.6;flex-shrink:0;"></div>`
   const label    = `<div style="display:flex;flex-direction:column;justify-content:center;padding:0 8px;min-width:${labelW}px;height:${pillH}px;overflow:hidden;">
     <div style="color:${V.fg};font-size:11px;font-family:${V.font};line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(name)}</div>
-    <div style="color:${V.muted};font-size:9px;font-family:${V.font};line-height:1.3;text-transform:capitalize;white-space:nowrap;">${escapeHtml(iconType)}</div>
+    <div style="display:flex;align-items:center;gap:0;font-size:9px;font-family:${V.font};line-height:1.3;white-space:nowrap;">
+      <span style="color:${V.muted};text-transform:capitalize;">${escapeHtml(iconType)}</span>${statusBadge}
+    </div>
   </div>`
 
-  const pill = `<div style="display:inline-flex;align-items:stretch;border:1px solid ${V.border};border-radius:4px;background:${V.bg};overflow:hidden;">${iconArea}${divider}${label}</div>`
+  const borderColor = status !== 'active' ? color : V.border
+  const pill = `<div style="display:inline-flex;align-items:stretch;border:1px solid ${borderColor};border-radius:4px;background:${V.bg};overflow:hidden;">${iconArea}${divider}${label}</div>`
   const html = `<div style="display:inline-block;filter:${glowFilter};">${pill}</div>`
 
   const totalW = iconW + 1 + labelW + 2
@@ -180,6 +209,7 @@ interface LeafletMapCanvasProps {
   scaleMode?: boolean
   onScalePoints?: (p1: ScaleCalibrationPoint, p2: ScaleCalibrationPoint) => void
   showSubMapLinks?: boolean
+  locationStatuses?: Record<string, string>
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -187,7 +217,7 @@ export function LeafletMapCanvas({
   layer, imageUrl, markers, charPins, movementLines,
   isDraggingCharacter, onMarkerClick, onMapClick, onDrillDown,
   onCharacterDrop, onCharacterClick, mapRef: externalMapRef,
-  scaleMode, onScalePoints, showSubMapLinks = true,
+  scaleMode, onScalePoints, showSubMapLinks = true, locationStatuses = {},
 }: LeafletMapCanvasProps) {
   const internalMapRef = useRef<L.Map | null>(null)
   const mapRef         = externalMapRef ?? internalMapRef
@@ -344,7 +374,7 @@ export function LeafletMapCanvas({
           <Marker
             key={marker.id}
             position={[marker.y, marker.x]}
-            icon={makeLocationIcon(marker.iconType, !!marker.linkedMapLayerId && showSubMapLinks, marker.name, isDraggingCharacter)}
+            icon={makeLocationIcon(marker.iconType, !!marker.linkedMapLayerId && showSubMapLinks, marker.name, isDraggingCharacter, locationStatuses[marker.id] ?? 'active')}
             zIndexOffset={isDraggingCharacter ? 2000 : -100}
             draggable
             eventHandlers={{

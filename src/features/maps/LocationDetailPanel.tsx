@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Trash2, Map, Link, Upload, Users, Plus, UserMinus, Package } from 'lucide-react'
+import { X, Trash2, Map, Link, Upload, Users, Plus, UserMinus, Package, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,7 @@ import { useWorldSnapshots, upsertSnapshot } from '@/db/hooks/useSnapshots'
 import { useTimelines, useChapters, createTimeline, createChapter } from '@/db/hooks/useTimeline'
 import { useItems } from '@/db/hooks/useItems'
 import { useLocationItemPlacements, useWorldItemPlacements, placeItemAtLocation, removeItemPlacement } from '@/db/hooks/useItemPlacements'
+import { useLocationSnapshot, upsertLocationSnapshot } from '@/db/hooks/useLocationSnapshots'
 import { useAppStore } from '@/store'
 import { UploadMapDialog } from './UploadMapDialog'
 import { PortraitImage } from '@/components/PortraitImage'
@@ -35,6 +36,7 @@ export function LocationDetailPanel({ markerId, worldId, onClose, onDrillDown }:
   const allItems = useItems(worldId)
   const itemsHere = useLocationItemPlacements(markerId, activeChapterId)
   const allPlacements = useWorldItemPlacements(worldId)
+  const locationSnap = useLocationSnapshot(markerId, activeChapterId)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -335,6 +337,51 @@ export function LocationDetailPanel({ markerId, worldId, onClose, onDrillDown }:
                 </Select>
               )
             })()}
+          </div>
+        )}
+
+        {/* ── Chapter State ── */}
+        {activeChapterId && (
+          <div className="flex flex-col gap-2">
+            <Label className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" /> Chapter State
+            </Label>
+            <Select
+              value={locationSnap?.status ?? 'active'}
+              onValueChange={(v) =>
+                upsertLocationSnapshot({
+                  worldId,
+                  locationMarkerId: markerId,
+                  chapterId: activeChapterId,
+                  status: v,
+                  notes: locationSnap?.notes ?? '',
+                })
+              }
+            >
+              <SelectTrigger className="text-xs h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {['active', 'occupied', 'sieged', 'abandoned', 'ruined', 'destroyed', 'unknown'].map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Textarea
+              className="text-xs resize-none"
+              rows={3}
+              placeholder="Notes for this chapter..."
+              value={locationSnap?.notes ?? ''}
+              onChange={(e) =>
+                upsertLocationSnapshot({
+                  worldId,
+                  locationMarkerId: markerId,
+                  chapterId: activeChapterId,
+                  status: locationSnap?.status ?? 'active',
+                  notes: e.target.value,
+                })
+              }
+            />
           </div>
         )}
 
