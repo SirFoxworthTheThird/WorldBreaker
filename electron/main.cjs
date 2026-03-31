@@ -13,7 +13,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    icon: path.join(__dirname, '../public/favicon.png'),
+    icon: path.join(__dirname, isDev ? '../public/favicon.png' : '../dist/favicon.png'),
     title: 'PlotWeave',
     show: false,
     backgroundColor: '#1a2535',
