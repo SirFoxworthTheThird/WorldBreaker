@@ -179,6 +179,7 @@ interface LeafletMapCanvasProps {
   mapRef?: React.RefObject<L.Map | null>
   scaleMode?: boolean
   onScalePoints?: (p1: ScaleCalibrationPoint, p2: ScaleCalibrationPoint) => void
+  showSubMapLinks?: boolean
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -186,7 +187,7 @@ export function LeafletMapCanvas({
   layer, imageUrl, markers, charPins, movementLines,
   isDraggingCharacter, onMarkerClick, onMapClick, onDrillDown,
   onCharacterDrop, onCharacterClick, mapRef: externalMapRef,
-  scaleMode, onScalePoints,
+  scaleMode, onScalePoints, showSubMapLinks = true,
 }: LeafletMapCanvasProps) {
   const internalMapRef = useRef<L.Map | null>(null)
   const mapRef         = externalMapRef ?? internalMapRef
@@ -343,7 +344,7 @@ export function LeafletMapCanvas({
           <Marker
             key={marker.id}
             position={[marker.y, marker.x]}
-            icon={makeLocationIcon(marker.iconType, !!marker.linkedMapLayerId, marker.name, isDraggingCharacter)}
+            icon={makeLocationIcon(marker.iconType, !!marker.linkedMapLayerId && showSubMapLinks, marker.name, isDraggingCharacter)}
             zIndexOffset={isDraggingCharacter ? 2000 : -100}
             draggable
             eventHandlers={{
