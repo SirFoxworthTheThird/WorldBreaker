@@ -49,17 +49,5 @@ module.exports = {
         },
       },
     },
-    {
-      // Linux — produces a .rpm package (Fedora/RHEL)
-      name: '@electron-forge/maker-rpm',
-      config: {
-        options: {
-          homepage: 'https://github.com/SirFoxworthTheThird/PlotWeave',
-          summary: 'A local story and world-building tracker',
-          description: 'A local story and world-building tracker',
-          license: 'MIT',
-        },
-      },
-    },
   ],
 }
