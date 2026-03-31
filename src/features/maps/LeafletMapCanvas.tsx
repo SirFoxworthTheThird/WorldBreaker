@@ -211,6 +211,7 @@ interface LeafletMapCanvasProps {
   onMapClick: (x: number, y: number) => void
   onDrillDown: (mapLayerId: string) => void
   onCharacterDrop: (characterId: string, markerId: string) => void
+  onCharacterDropOnEmpty?: (characterId: string, x: number, y: number) => void
   onCharacterClick?: (characterId: string) => void
   mapRef?: React.RefObject<L.Map | null>
   scaleMode?: boolean
@@ -223,7 +224,7 @@ interface LeafletMapCanvasProps {
 export function LeafletMapCanvas({
   layer, imageUrl, markers, charPins, movementLines,
   isDraggingCharacter, onMarkerClick, onMapClick, onDrillDown,
-  onCharacterDrop, onCharacterClick, mapRef: externalMapRef,
+  onCharacterDrop, onCharacterDropOnEmpty, onCharacterClick, mapRef: externalMapRef,
   scaleMode, onScalePoints, showSubMapLinks = true, locationStatuses = {},
 }: LeafletMapCanvasProps) {
   const internalMapRef = useRef<L.Map | null>(null)
@@ -238,9 +239,11 @@ export function LeafletMapCanvas({
   const onCharacterDropRef = useRef(onCharacterDrop)
   const markersRef         = useRef(markers)
 
-  onMarkerClickRef.current   = onMarkerClick
-  onCharacterDropRef.current = onCharacterDrop
-  markersRef.current         = markers
+  const onCharacterDropOnEmptyRef = useRef(onCharacterDropOnEmpty)
+  onMarkerClickRef.current          = onMarkerClick
+  onCharacterDropRef.current        = onCharacterDrop
+  onCharacterDropOnEmptyRef.current = onCharacterDropOnEmpty
+  markersRef.current                = markers
 
   const w      = layer.imageWidth
   const h      = layer.imageHeight
@@ -423,7 +426,31 @@ export function LeafletMapCanvas({
                 position={[first.y, first.x]}
                 icon={makeCharacterGroupIcon(group, mapZoom)}
                 zIndexOffset={1000}
-                eventHandlers={{ click: () => onCharacterClick?.(first.character.id) }}
+                draggable={!first.inSubMap}
+                eventHandlers={{
+                  click: () => onCharacterClick?.(first.character.id),
+                  dragend: (e) => {
+                    const leafletMarker = e.target as L.Marker
+                    const latlng = leafletMarker.getLatLng()
+                    const map = mapRef.current
+                    if (!map) { leafletMarker.setLatLng([first.y, first.x]); return }
+                    const dropPt = map.latLngToContainerPoint(latlng)
+                    let nearest: LocationMarker | null = null
+                    let minDist = Infinity
+                    for (const m of markersRef.current) {
+                      const pt = map.latLngToContainerPoint([m.y, m.x])
+                      const dist = Math.hypot(dropPt.x - pt.x, dropPt.y - pt.y)
+                      if (dist < minDist) { minDist = dist; nearest = m }
+                    }
+                    if (nearest && minDist < 60) {
+                      onCharacterDropRef.current(first.character.id, nearest.id)
+                      leafletMarker.setLatLng([nearest.y, nearest.x])
+                    } else {
+                      leafletMarker.setLatLng([first.y, first.x])
+                      onCharacterDropOnEmptyRef.current?.(first.character.id, latlng.lng, latlng.lat)
+                    }
+                  },
+                }}
               />
             )
           }

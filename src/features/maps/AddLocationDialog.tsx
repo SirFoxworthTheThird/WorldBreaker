@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createLocationMarker } from '@/db/hooks/useLocationMarkers'
-import type { LocationIconType } from '@/types'
+import type { LocationIconType, LocationMarker } from '@/types'
 
 const ICON_TYPES: { value: LocationIconType; label: string }[] = [
   { value: 'city', label: 'City' },
@@ -24,11 +24,12 @@ interface AddLocationDialogProps {
   worldId: string
   mapLayerId: string
   position: { x: number; y: number }
-  onCreated?: () => void
+  subtitle?: string
+  onCreated?: (marker: LocationMarker) => void
 }
 
 export function AddLocationDialog({
-  open, onOpenChange, worldId, mapLayerId, position, onCreated,
+  open, onOpenChange, worldId, mapLayerId, position, subtitle, onCreated,
 }: AddLocationDialogProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -39,7 +40,7 @@ export function AddLocationDialog({
     e.preventDefault()
     if (!name.trim()) return
     setSaving(true)
-    await createLocationMarker({
+    const marker = await createLocationMarker({
       worldId,
       mapLayerId,
       name: name.trim(),
@@ -53,7 +54,7 @@ export function AddLocationDialog({
     setDescription('')
     setIconType('city')
     onOpenChange(false)
-    onCreated?.()
+    onCreated?.(marker)
   }
 
   return (
@@ -61,6 +62,9 @@ export function AddLocationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Location</DialogTitle>
+          {subtitle && (
+            <p className="text-sm text-[hsl(var(--muted-foreground))]">{subtitle}</p>
+          )}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">

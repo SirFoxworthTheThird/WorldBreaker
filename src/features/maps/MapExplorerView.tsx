@@ -874,6 +874,7 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
   const [isDraggingCharacter, setIsDraggingCharacter] = useState(false)
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(null)
   const [addLocationOpen, setAddLocationOpen] = useState(false)
+  const [pendingDropCharacterId, setPendingDropCharacterId] = useState<string | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
   const [scaleMode, setScaleMode] = useState(false)
@@ -1154,6 +1155,11 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
             onMapClick={(x, y) => { setPendingPos({ x, y }); setAddLocationOpen(true) }}
             onDrillDown={pushMapLayer}
             onCharacterDrop={handleCharacterDrop}
+            onCharacterDropOnEmpty={(characterId, x, y) => {
+              setPendingDropCharacterId(characterId)
+              setPendingPos({ x, y })
+              setAddLocationOpen(true)
+            }}
             onCharacterClick={handleCharacterClick}
             mapRef={mapRef}
             scaleMode={scaleMode}
@@ -1203,10 +1209,22 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
       {pendingPos && (
         <AddLocationDialog
           open={addLocationOpen}
-          onOpenChange={(o) => { setAddLocationOpen(o); if (!o) setPendingPos(null) }}
+          onOpenChange={(o) => {
+            setAddLocationOpen(o)
+            if (!o) { setPendingPos(null); setPendingDropCharacterId(null) }
+          }}
           worldId={worldId}
           mapLayerId={layerId}
           position={pendingPos}
+          subtitle={pendingDropCharacterId
+            ? `${characters.find(c => c.id === pendingDropCharacterId)?.name ?? 'Character'} will be placed at this location.`
+            : undefined}
+          onCreated={async (marker) => {
+            if (pendingDropCharacterId) {
+              await handleCharacterDrop(pendingDropCharacterId, marker.id)
+              setPendingDropCharacterId(null)
+            }
+          }}
         />
       )}
       <UploadMapDialog
