@@ -969,8 +969,10 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
           </div>
         </div>
 
-        {/* Filter bar */}
-        <MapFilterBar filters={mapFilters} characters={characters} onChange={setMapFilters} />
+        {/* Filter bar — relative + z-index so its dropdowns paint above the Leaflet canvas */}
+        <div className="relative z-[1100] shrink-0">
+          <MapFilterBar filters={mapFilters} characters={characters} onChange={setMapFilters} />
+        </div>
 
         {/* Map canvas */}
         <div className="flex-1 overflow-hidden">
