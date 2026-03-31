@@ -910,6 +910,9 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
       ...pin,
       character: char,
       portraitUrl: char.portraitImageId ? blobUrls.get(char.portraitImageId) ?? null : null,
+      locationName: snap.currentLocationMarkerId
+        ? allMarkers.find((m) => m.id === snap.currentLocationMarkerId)?.name ?? null
+        : null,
     })
   }
 

@@ -97,6 +97,7 @@ export interface CharacterPin {
   y: number
   inSubMap: boolean
   portraitUrl?: string | null
+  locationName?: string | null
 }
 
 function makeCharacterGroupIcon(pins: CharacterPin[], zoom: number): L.DivIcon {
@@ -125,7 +126,11 @@ function makeCharacterGroupIcon(pins: CharacterPin[], zoom: number): L.DivIcon {
   const divider = `<div style="width:1px;height:${Math.round(size * 0.65)}px;align-self:center;background:${V.frame};opacity:0.6;flex-shrink:0;"></div>`
 
   const labelText = n === 1 ? escapeHtml(first.character.name) : `${n} characters`
-  const subText   = n === 1 && first.inSubMap ? 'In sub-map' : ''
+  const subText   = n === 1
+    ? first.inSubMap
+      ? `${first.locationName ? escapeHtml(first.locationName) + ' · ' : ''}Sub-map`
+      : (first.locationName ? escapeHtml(first.locationName) : '')
+    : ''
   const fsPrimary = Math.max(10, Math.round(size * 0.3))
   const fsSub     = Math.max(8,  Math.round(size * 0.24))
   const labelW    = 110
