@@ -5,7 +5,7 @@ import {
   Plus, Upload, Users, Map as MapIcon, Trash2, Undo2,
   ChevronRight, ChevronDown, MapPin, Package, Layers, Ruler, X, Route, Search,
 } from 'lucide-react'
-import { useAppStore, useActiveMapLayerId, useActiveChapterId, useMapLayerHistory } from '@/store'
+import { useAppStore, useActiveMapLayerId, useActiveChapterId, useMapLayerHistory, type PlaybackSpeed } from '@/store'
 import { useRootMapLayers, useMapLayer, useMapLayers, deleteMapLayer, updateMapLayer } from '@/db/hooks/useMapLayers'
 import { useChapters, useTimelines } from '@/db/hooks/useTimeline'
 import { useLocationMarkers, useAllLocationMarkers } from '@/db/hooks/useLocationMarkers'
@@ -16,7 +16,7 @@ import { useItems } from '@/db/hooks/useItems'
 import { useChapterItemPlacements } from '@/db/hooks/useItemPlacements'
 import { useItemSnapshot, upsertItemSnapshot } from '@/db/hooks/useItemSnapshots'
 import { useChapterLocationSnapshots } from '@/db/hooks/useLocationSnapshots'
-import type { CharacterPin, MovementLine, ScaleCalibrationPoint } from './LeafletMapCanvas'
+import type { CharacterPin, MovementLine, PinAnimation, ScaleCalibrationPoint } from './LeafletMapCanvas'
 import { useBlobUrl, useWorldBlobUrls } from '@/db/hooks/useBlobs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,10 +30,14 @@ import { LocationDetailPanel } from './LocationDetailPanel'
 import { CharacterSnapshotPanel } from './CharacterSnapshotPanel'
 import { UploadMapDialog } from './UploadMapDialog'
 import { AddLocationDialog } from './AddLocationDialog'
+import { StoryNotesOverlay } from './StoryNotesOverlay'
 import type { Character, CharacterSnapshot, Item, LocationMarker, MapLayer } from '@/types'
 import { pixelDist, pathPixelLength, formatDistance } from '@/lib/mapScale'
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
+
+/** How long character pins animate across the map per playback speed (ms) */
+const PIN_TRAVEL_MS: Record<PlaybackSpeed, number> = { slow: 6500, normal: 4000, fast: 2200 }
 
 const MOVEMENT_COLORS = [
   '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa',
@@ -872,6 +876,10 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
   const chapterLocSnaps = useChapterLocationSnapshots(activeChapterId)
 
   const [isDraggingCharacter, setIsDraggingCharacter] = useState(false)
+  // Pin animation: holds the spec (from/to/duration) passed once to the canvas
+  const [pinAnimation, setPinAnimation] = useState<PinAnimation | null>(null)
+  const prevPinPositionsRef = useRef<Record<string, { x: number; y: number }>>({})
+  const pinAnimationKeyRef = useRef(0)
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(null)
   const [addLocationOpen, setAddLocationOpen] = useState(false)
   const [pendingDropCharacterId, setPendingDropCharacterId] = useState<string | null>(null)
@@ -880,7 +888,7 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
   const [scaleMode, setScaleMode] = useState(false)
   const [scaleDialog, setScaleDialog] = useState<{ pixelDist: number } | null>(null)
   const [mapFilters, setMapFilters] = useState<MapFilters>(DEFAULT_MAP_FILTERS)
-  const { setSelectedLocationMarkerId, selectedLocationMarkerId, pushMapLayer, setActiveMapLayerId } = useAppStore()
+  const { setSelectedLocationMarkerId, selectedLocationMarkerId, pushMapLayer, setActiveMapLayerId, isPlayingStory, playbackSpeed } = useAppStore()
   const mapRef = useRef<L.Map | null>(null)
 
   function handleScalePoints(p1: ScaleCalibrationPoint, p2: ScaleCalibrationPoint) {
@@ -967,6 +975,27 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
         : null,
     })
   }
+
+  // ── Pin animation during playback ───────────────────────────────────────────
+  // Effect 1: when chapter changes during playback, compute the animation spec and
+  // hand it to the canvas once. The canvas runs the RAF loop imperatively (no re-renders).
+  // Runs BEFORE effect 2 so prevPinPositionsRef still holds the previous chapter's positions.
+  useEffect(() => {
+    if (!isPlayingStory) { setPinAnimation(null); return }
+    const from = { ...prevPinPositionsRef.current }
+    if (Object.keys(from).length === 0) return
+    const to: Record<string, { x: number; y: number }> = {}
+    for (const pin of charPins) to[pin.character.id] = { x: pin.x, y: pin.y }
+    pinAnimationKeyRef.current += 1
+    setPinAnimation({ from, to, duration: PIN_TRAVEL_MS[playbackSpeed], key: pinAnimationKeyRef.current })
+  }, [activeChapterId, isPlayingStory, playbackSpeed]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Effect 2: keep prevPinPositionsRef up to date (runs after effect 1)
+  useEffect(() => {
+    const positions: Record<string, { x: number; y: number }> = {}
+    for (const pin of charPins) positions[pin.character.id] = { x: pin.x, y: pin.y }
+    prevPinPositionsRef.current = positions
+  })
 
   // Build in-chapter waypoint lines — one segment per consecutive waypoint pair
   const movementLines: MovementLine[] = []
@@ -1161,6 +1190,18 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
           <MapFilterBar filters={mapFilters} characters={characters} onChange={setMapFilters} />
         </div>
 
+        {/* Story playback notes overlay */}
+        {isPlayingStory && activeChapterId && activeChapter && worldId && (
+          <StoryNotesOverlay
+            key={activeChapterId}
+            chapterId={activeChapterId}
+            worldId={worldId}
+            playbackSpeed={playbackSpeed}
+            chapterNumber={activeChapter.number}
+            chapterTitle={activeChapter.title}
+          />
+        )}
+
         {/* Map canvas */}
         <div className="flex-1 overflow-hidden">
           <LeafletMapCanvas
@@ -1172,6 +1213,7 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
             showSubMapLinks={mapFilters.showSubMapLinks}
             locationStatuses={locationStatusMap}
             isDraggingCharacter={isDraggingCharacter}
+            pinAnimation={pinAnimation}
             onMarkerClick={handleMarkerClick}
             onMapClick={(x, y) => { setPendingPos({ x, y }); setAddLocationOpen(true) }}
             onDrillDown={pushMapLayer}

@@ -189,6 +189,13 @@ function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression }) {
 }
 
 // ── Public types ──────────────────────────────────────────────────────────────
+export interface PinAnimation {
+  key: number
+  from: Record<string, { x: number; y: number }>
+  to: Record<string, { x: number; y: number }>
+  duration: number
+}
+
 export interface MovementLine {
   /** Unique key for React rendering; falls back to `characterId-style` if omitted */
   id?: string
@@ -215,6 +222,7 @@ interface LeafletMapCanvasProps {
   onCharacterDrop: (characterId: string, markerId: string) => void
   onCharacterDropOnEmpty?: (characterId: string, x: number, y: number) => void
   onCharacterClick?: (characterId: string) => void
+  pinAnimation?: PinAnimation | null
   mapRef?: React.RefObject<L.Map | null>
   scaleMode?: boolean
   onScalePoints?: (p1: ScaleCalibrationPoint, p2: ScaleCalibrationPoint) => void
@@ -228,9 +236,13 @@ export function LeafletMapCanvas({
   isDraggingCharacter, onMarkerClick, onMapClick, onDrillDown,
   onCharacterDrop, onCharacterDropOnEmpty, onCharacterClick, mapRef: externalMapRef,
   scaleMode, onScalePoints, showSubMapLinks = true, locationStatuses = {},
+  pinAnimation,
 }: LeafletMapCanvasProps) {
   const internalMapRef = useRef<L.Map | null>(null)
   const mapRef         = externalMapRef ?? internalMapRef
+  // Refs to individual single-character Leaflet markers for imperative animation
+  const markerRefs = useRef<Map<string, L.Marker>>(new Map())
+  const animFrameRef = useRef<number | null>(null)
   const [mapZoom, setMapZoom]         = useState(0)
   const [addMode, setAddMode]         = useState(false)
   const addModeRef                    = useRef(false)
@@ -289,6 +301,28 @@ export function LeafletMapCanvas({
   useEffect(() => {
     if (!scaleMode) setScalePoint1(null)
   }, [scaleMode])
+
+  // Imperative pin animation — drives markers directly via setLatLng(), zero React re-renders
+  useEffect(() => {
+    if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null }
+    if (!pinAnimation) return
+    const { from, to, duration } = pinAnimation
+    const start = performance.now()
+    function tick() {
+      const t = Math.min((performance.now() - start) / duration, 1)
+      const eased = -(Math.cos(Math.PI * t) - 1) / 2 // ease-in-out sine
+      for (const [id, toPos] of Object.entries(to)) {
+        const fromPos = from[id] ?? toPos
+        const x = fromPos.x + (toPos.x - fromPos.x) * eased
+        const y = fromPos.y + (toPos.y - fromPos.y) * eased
+        markerRefs.current.get(id)?.setLatLng([y, x])
+      }
+      if (t < 1) animFrameRef.current = requestAnimationFrame(tick)
+      else animFrameRef.current = null
+    }
+    animFrameRef.current = requestAnimationFrame(tick)
+    return () => { if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null } }
+  }, [pinAnimation])
 
   function findNearestMarker(clientX: number, clientY: number, el: HTMLElement): LocationMarker | null {
     const map = mapRef.current
@@ -425,6 +459,7 @@ export function LeafletMapCanvas({
             return (
               <Marker
                 key={first.character.id}
+                ref={(m) => { if (m) markerRefs.current.set(first.character.id, m); else markerRefs.current.delete(first.character.id) }}
                 position={[first.y, first.x]}
                 icon={makeCharacterGroupIcon(group, mapZoom)}
                 zIndexOffset={1000}

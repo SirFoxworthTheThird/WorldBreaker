@@ -21,6 +21,14 @@ interface MapSlice {
 }
 
 export type AppTheme = 'default' | 'fantasy' | 'scifi' | 'cyberpunk' | 'horror' | 'western' | 'action' | 'noir' | 'romance'
+export type PlaybackSpeed = 'slow' | 'normal' | 'fast'
+
+interface PlaybackSlice {
+  isPlayingStory: boolean
+  playbackSpeed: PlaybackSpeed
+  setIsPlayingStory: (v: boolean) => void
+  setPlaybackSpeed: (speed: PlaybackSpeed) => void
+}
 
 interface UISlice {
   sidebarOpen: boolean
@@ -36,7 +44,7 @@ interface UISlice {
   setTheme: (theme: AppTheme) => void
 }
 
-type AppStore = WorldSlice & ChapterSlice & MapSlice & UISlice
+type AppStore = WorldSlice & ChapterSlice & MapSlice & UISlice & PlaybackSlice
 
 export const useAppStore = create<AppStore>()(
   persist(
@@ -68,6 +76,12 @@ export const useAppStore = create<AppStore>()(
         }),
       resetMapHistory: (rootId) =>
         set({ activeMapLayerId: rootId, mapLayerHistory: [rootId] }),
+
+      // Playback (not persisted)
+      isPlayingStory: false,
+      playbackSpeed: 'normal' as PlaybackSpeed,
+      setIsPlayingStory: (v) => set({ isPlayingStory: v }),
+      setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 
       // UI
       sidebarOpen: true,

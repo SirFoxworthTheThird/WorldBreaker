@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useActiveWorldId, useActiveChapterId, useAppStore } from '@/store'
+import { ChevronLeft, ChevronRight, Play, Pause, Square } from 'lucide-react'
+import { useActiveWorldId, useActiveChapterId, useAppStore, type PlaybackSpeed } from '@/store'
 import { useTimelines, useChapters } from '@/db/hooks/useTimeline'
+
+const SPEED_MS: Record<PlaybackSpeed, number> = { slow: 8000, normal: 5000, fast: 3000 }
+const SPEED_NEXT: Record<PlaybackSpeed, PlaybackSpeed> = { slow: 'normal', normal: 'fast', fast: 'slow' }
+const SPEED_LABEL: Record<PlaybackSpeed, string> = { slow: '1×', normal: '2×', fast: '3×' }
 
 // ─── Shared inline-style helpers ────────────────────────────────────────────
 
@@ -186,7 +190,7 @@ function Callout({ left, chapterNum, title, synopsis, hasPrev, hasNext, onPrev, 
 export function ChapterTimelineBar() {
   const worldId         = useActiveWorldId()
   const activeChapterId = useActiveChapterId()
-  const { setActiveChapterId } = useAppStore()
+  const { setActiveChapterId, isPlayingStory, setIsPlayingStory, playbackSpeed, setPlaybackSpeed } = useAppStore()
 
   const timelines        = useTimelines(worldId)
   const firstTimelineId  = timelines[0]?.id ?? null
@@ -196,6 +200,48 @@ export function ChapterTimelineBar() {
   const activeChapter = activeIndex >= 0 ? chapters[activeIndex] : null
   const prevChapter   = activeIndex > 0 ? chapters[activeIndex - 1] : null
   const nextChapter   = activeIndex < chapters.length - 1 ? chapters[activeIndex + 1] : null
+
+  // ── Playback timer ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isPlayingStory || !chapters.length) return
+
+    // If no chapter is selected, start at the first one
+    if (!activeChapterId) {
+      setActiveChapterId(chapters[0].id)
+      return
+    }
+
+    const idx = chapters.findIndex((c) => c.id === activeChapterId)
+    if (idx === -1) return
+
+    const t = setTimeout(() => {
+      if (idx >= chapters.length - 1) {
+        // Last chapter — let the full hold time pass first, then stop
+        setIsPlayingStory(false)
+      } else {
+        setActiveChapterId(chapters[idx + 1].id)
+      }
+    }, SPEED_MS[playbackSpeed])
+
+    return () => clearTimeout(t)
+  }, [isPlayingStory, activeChapterId, chapters, playbackSpeed, setActiveChapterId, setIsPlayingStory])
+
+  function handlePlayPause() {
+    if (isPlayingStory) {
+      setIsPlayingStory(false)
+    } else {
+      // If we're at the last chapter, restart from the beginning
+      if (activeIndex >= chapters.length - 1) {
+        setActiveChapterId(chapters[0]?.id ?? null)
+      }
+      setIsPlayingStory(true)
+    }
+  }
+
+  function handleStop() {
+    setIsPlayingStory(false)
+    setActiveChapterId(null)
+  }
 
   // Track ref for measuring marker positions
   const scrollerRef     = useRef<HTMLDivElement>(null)
@@ -250,9 +296,53 @@ export function ChapterTimelineBar() {
 
       {/* Bar */}
       <div style={barStyle}>
+        {/* Playback controls */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.125rem',
+          padding: '0 0.5rem', height: '100%', flexShrink: 0,
+          borderRight: '1px solid var(--tl-border)',
+        }}>
+          <button
+            onClick={handlePlayPause}
+            title={isPlayingStory ? 'Pause' : 'Play story'}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--tl-accent)', padding: '0.25rem',
+              display: 'flex', alignItems: 'center', borderRadius: '3px',
+            }}
+          >
+            {isPlayingStory ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          {isPlayingStory && (
+            <button
+              onClick={handleStop}
+              title="Stop"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--tl-text-muted)', padding: '0.25rem',
+                display: 'flex', alignItems: 'center', borderRadius: '3px',
+              }}
+            >
+              <Square size={11} />
+            </button>
+          )}
+          <button
+            onClick={() => setPlaybackSpeed(SPEED_NEXT[playbackSpeed])}
+            title="Playback speed"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: isPlayingStory ? 'var(--tl-accent)' : 'var(--tl-text-muted)',
+              fontSize: '0.6rem', fontWeight: 700, fontFamily: 'var(--font-body)',
+              padding: '0.25rem 0.125rem', lineHeight: 1, borderRadius: '3px',
+            }}
+          >
+            {SPEED_LABEL[playbackSpeed]}
+          </button>
+        </div>
+
         {/* "All time" deselect */}
         <button
-          onClick={() => setActiveChapterId(null)}
+          onClick={() => { setIsPlayingStory(false); setActiveChapterId(null) }}
           style={{
             flexShrink: 0,
             padding: '0 0.875rem',
