@@ -1003,10 +1003,8 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
     }
   }
 
-  async function handleCharacterDrop(characterId: string, markerId: string) {
+  async function placeCharacterAtMarker(characterId: string, marker: LocationMarker) {
     if (!activeChapterId) return
-    const targetMarker = markers.find((m) => m.id === markerId)
-    if (!targetMarker) return
     const existing = allSnapshots.find(
       (s) => s.characterId === characterId && s.chapterId === activeChapterId
     )
@@ -1015,13 +1013,19 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
       characterId,
       chapterId: activeChapterId,
       isAlive: existing?.isAlive ?? true,
-      currentLocationMarkerId: markerId,
-      currentMapLayerId: targetMarker.mapLayerId,
+      currentLocationMarkerId: marker.id,
+      currentMapLayerId: marker.mapLayerId,
       inventoryItemIds: existing?.inventoryItemIds ?? [],
       inventoryNotes: existing?.inventoryNotes ?? '',
       statusNotes: existing?.statusNotes ?? '',
     })
-    await appendWaypoint(worldId, characterId, activeChapterId, markerId)
+    await appendWaypoint(worldId, characterId, activeChapterId, marker.id)
+  }
+
+  async function handleCharacterDrop(characterId: string, markerId: string) {
+    const targetMarker = markers.find((m) => m.id === markerId)
+    if (!targetMarker) return
+    await placeCharacterAtMarker(characterId, targetMarker)
   }
 
   // Build markerId → status map for the active chapter
@@ -1221,7 +1225,7 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
             : undefined}
           onCreated={async (marker) => {
             if (pendingDropCharacterId) {
-              await handleCharacterDrop(pendingDropCharacterId, marker.id)
+              await placeCharacterAtMarker(pendingDropCharacterId, marker)
               setPendingDropCharacterId(null)
             }
           }}
