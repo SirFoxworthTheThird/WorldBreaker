@@ -54,6 +54,7 @@ When writing long stories it's easy to lose track of where a character is, what 
 - **Callout** — a floating info card appears above the active marker showing the chapter title, synopsis, and prev/next navigation chevrons; auto-dismisses after 4 seconds
 - **"All" deselect** — a button on the left of the bar resets the chapter cursor to show unfiltered data
 - **Playback controls** — Play/Pause, Stop, and Speed buttons built into the timeline bar for story playback mode
+- **Chapter diff** — a compare icon appears in the timeline bar whenever a chapter is active; click it to open a side-by-side diff of any two chapters showing character moves, relationship changes, and item relocations
 - **Theme-aware** — the bar's colours, fonts, glow effects, and pulse animations all update instantly with the active theme
 
 ### Maps
@@ -102,6 +103,17 @@ When writing long stories it's easy to lose track of where a character is, what 
 - **Item images** — upload an image for each item; shown everywhere items appear (roster cards, inventory lists, location panels, map sidebar, timeline snapshot cards)
 - **Per-chapter placement** — place items at map locations or in character inventories per chapter; moving an item removes it from its previous owner/location automatically
 - **Item detail view** — name, description, icon type, image upload, and a full edit/delete interface
+
+### Global Search
+- **Command palette** — press `Ctrl+K` (or `⌘K` on Mac) from anywhere in the app to open a full-text search palette
+- **Searches everything** — characters, items, location markers, chapters, events, timelines, and relationships all searched simultaneously
+- **Grouped results** — results are grouped by entity type with colour-coded icons and the matching text highlighted inline
+- **Keyboard navigation** — use ↑↓ to move through results, Enter to navigate, Esc to dismiss
+
+### Writer's Brief
+- **Chapter summary panel** — click the scroll icon in the top-right to open a slide-in panel showing everything relevant to the active chapter
+- **At a glance** — displays the chapter title and synopsis, all events, each character's current location / alive status / status notes / inventory, all relationship states recorded for that chapter, and every item placed at a location
+- **Always in sync** — the panel reads live from the database so it reflects edits made anywhere else in the app immediately
 
 ### Themes
 Nine visual profiles that instantly transform the entire app — backgrounds, borders, fonts, border-radius, glow intensities, timeline animations, map callouts, and character panels all update together:
@@ -197,6 +209,9 @@ npm run electron:make
 9. **Build the relationship graph** in the Relationships tab — add relationships with sentiment and strength, scoped to the active chapter
 10. **Export your world** from the world card on the dashboard to create a `.pwk` backup file
 11. **Play the Story So Far** — press Play in the timeline bar to animate your characters through all chapters with cinematic notes
+12. **Compare chapters** — click the compare icon in the timeline bar to diff any two chapters and see exactly what changed
+13. **Open the Writer's Brief** — click the scroll icon in the top-right for a full summary of the active chapter
+14. **Search your world** — press `Ctrl+K` to find any character, location, chapter, or item instantly
 
 ---
 

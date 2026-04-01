@@ -3,15 +3,30 @@ import { TopBar } from './TopBar'
 import { ChapterTimelineBar } from './ChapterTimelineBar'
 import { useAppStore } from '@/store'
 import { useEffect } from 'react'
+import { SearchPalette } from '@/features/search/SearchPalette'
+import { WritersBriefPanel } from '@/features/brief/WritersBriefPanel'
+import { ChapterDiffModal } from '@/features/diff/ChapterDiffModal'
 
 export function AppShell() {
   const { worldId } = useParams<{ worldId: string }>()
-  const { setActiveWorldId } = useAppStore()
+  const { setActiveWorldId, setSearchOpen } = useAppStore()
   const isDashboard = !!useMatch('/worlds/:worldId')
 
   useEffect(() => {
     if (worldId) setActiveWorldId(worldId)
   }, [worldId, setActiveWorldId])
+
+  // Global Cmd/Ctrl+K to open search
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [setSearchOpen])
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -20,6 +35,9 @@ export function AppShell() {
       <main className={`flex-1 overflow-auto${!isDashboard ? ' pb-[3.25rem]' : ''}`}>
         <Outlet />
       </main>
+      <SearchPalette />
+      <WritersBriefPanel />
+      <ChapterDiffModal />
     </div>
   )
 }

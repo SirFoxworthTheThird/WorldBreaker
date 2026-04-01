@@ -42,6 +42,12 @@ interface UISlice {
   setSelectedRelationshipId: (id: string | null) => void
   theme: AppTheme
   setTheme: (theme: AppTheme) => void
+  searchOpen: boolean
+  setSearchOpen: (open: boolean) => void
+  briefOpen: boolean
+  setBriefOpen: (open: boolean) => void
+  diffOpen: boolean
+  setDiffOpen: (open: boolean) => void
 }
 
 type AppStore = WorldSlice & ChapterSlice & MapSlice & UISlice & PlaybackSlice
@@ -95,6 +101,12 @@ export const useAppStore = create<AppStore>()(
       setSelectedRelationshipId: (id) => set({ selectedRelationshipId: id }),
       theme: 'default',
       setTheme: (theme) => set({ theme }),
+      searchOpen: false,
+      setSearchOpen: (open) => set({ searchOpen: open }),
+      briefOpen: false,
+      setBriefOpen: (open) => set({ briefOpen: open }),
+      diffOpen: false,
+      setDiffOpen: (open) => set({ diffOpen: open }),
     }),
     {
       name: 'plotweave-ui',

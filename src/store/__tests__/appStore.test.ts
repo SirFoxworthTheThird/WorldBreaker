@@ -13,6 +13,9 @@ const INITIAL: Parameters<typeof useAppStore.setState>[0] = {
   theme: 'default',
   isPlayingStory: false,
   playbackSpeed: 'normal',
+  searchOpen: false,
+  briefOpen: false,
+  diffOpen: false,
 }
 
 beforeEach(() => {
@@ -175,6 +178,40 @@ describe('PlaybackSlice', () => {
     useAppStore.getState().setPlaybackSpeed('fast')
     useAppStore.getState().setIsPlayingStory(false)
     expect(useAppStore.getState().playbackSpeed).toBe('fast')
+  })
+})
+
+// ── OverlaySlice (search / brief / diff) ─────────────────────────────────────
+
+describe('OverlaySlice', () => {
+  it('opens and closes search', () => {
+    useAppStore.getState().setSearchOpen(true)
+    expect(useAppStore.getState().searchOpen).toBe(true)
+    useAppStore.getState().setSearchOpen(false)
+    expect(useAppStore.getState().searchOpen).toBe(false)
+  })
+
+  it('opens and closes brief', () => {
+    useAppStore.getState().setBriefOpen(true)
+    expect(useAppStore.getState().briefOpen).toBe(true)
+    useAppStore.getState().setBriefOpen(false)
+    expect(useAppStore.getState().briefOpen).toBe(false)
+  })
+
+  it('opens and closes diff', () => {
+    useAppStore.getState().setDiffOpen(true)
+    expect(useAppStore.getState().diffOpen).toBe(true)
+    useAppStore.getState().setDiffOpen(false)
+    expect(useAppStore.getState().diffOpen).toBe(false)
+  })
+
+  it('overlays are independent of each other', () => {
+    useAppStore.getState().setSearchOpen(true)
+    useAppStore.getState().setBriefOpen(true)
+    expect(useAppStore.getState().diffOpen).toBe(false)
+    useAppStore.getState().setDiffOpen(true)
+    expect(useAppStore.getState().searchOpen).toBe(true)
+    expect(useAppStore.getState().briefOpen).toBe(true)
   })
 })
 

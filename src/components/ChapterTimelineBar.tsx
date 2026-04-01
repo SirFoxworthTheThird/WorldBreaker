@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { ChevronLeft, ChevronRight, Play, Pause, Square } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play, Pause, Square, GitCompareArrows } from 'lucide-react'
 import { useActiveWorldId, useActiveChapterId, useAppStore, type PlaybackSpeed } from '@/store'
 import { useTimelines, useChapters } from '@/db/hooks/useTimeline'
 
@@ -190,7 +190,7 @@ function Callout({ left, chapterNum, title, synopsis, hasPrev, hasNext, onPrev, 
 export function ChapterTimelineBar() {
   const worldId         = useActiveWorldId()
   const activeChapterId = useActiveChapterId()
-  const { setActiveChapterId, isPlayingStory, setIsPlayingStory, playbackSpeed, setPlaybackSpeed } = useAppStore()
+  const { setActiveChapterId, isPlayingStory, setIsPlayingStory, playbackSpeed, setPlaybackSpeed, setDiffOpen } = useAppStore()
 
   const timelines        = useTimelines(worldId)
   const firstTimelineId  = timelines[0]?.id ?? null
@@ -338,6 +338,19 @@ export function ChapterTimelineBar() {
           >
             {SPEED_LABEL[playbackSpeed]}
           </button>
+          {activeChapterId && (
+            <button
+              onClick={() => setDiffOpen(true)}
+              title="Compare chapters"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--tl-text-muted)', padding: '0.25rem',
+                display: 'flex', alignItems: 'center', borderRadius: '3px',
+              }}
+            >
+              <GitCompareArrows size={13} />
+            </button>
+          )}
         </div>
 
         {/* "All time" deselect */}

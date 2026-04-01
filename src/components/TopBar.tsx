@@ -1,6 +1,6 @@
-import { BookOpen, Map, Users, Network, LayoutDashboard, Package } from 'lucide-react'
+import { BookOpen, Map, Users, Network, LayoutDashboard, Package, Search, ScrollText } from 'lucide-react'
 import faviconUrl from '/favicon.png'
-import { useActiveWorldId } from '@/store'
+import { useActiveWorldId, useAppStore } from '@/store'
 import { useWorld } from '@/db/hooks/useWorlds'
 import { ThemePicker } from './ThemePicker'
 import { useNavigate, NavLink, useParams } from 'react-router-dom'
@@ -47,6 +47,7 @@ export function TopBar() {
   const worldId = useActiveWorldId()
   const world = useWorld(worldId)
   const navigate = useNavigate()
+  const { setSearchOpen, setBriefOpen } = useAppStore()
 
   return (
     <header className="relative flex h-12 shrink-0 items-center border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4">
@@ -76,8 +77,28 @@ export function TopBar() {
         </div>
       )}
 
-      {/* Right: theme */}
-      <div className="ml-auto flex items-center gap-2">
+      {/* Right: search + brief + theme */}
+      <div className="ml-auto flex items-center gap-1">
+        {world && (
+          <>
+            <button
+              onClick={() => setSearchOpen(true)}
+              title="Search (Ctrl+K)"
+              className="flex h-8 items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2.5 text-xs text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] transition-colors"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Search</span>
+              <kbd className="hidden sm:inline-block rounded border border-[hsl(var(--border))] px-1 py-0.5 text-[10px]">⌘K</kbd>
+            </button>
+            <button
+              onClick={() => setBriefOpen(true)}
+              title="Writer's Brief"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] transition-colors"
+            >
+              <ScrollText className="h-4 w-4" />
+            </button>
+          </>
+        )}
         <ThemePicker />
       </div>
     </header>
