@@ -1051,7 +1051,7 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
     : visibleCharIds ? charPins.filter((p) => visibleCharIds.has(p.character.id))
     : charPins
   const displayedMovementLines = !mapFilters.showTrails ? []
-    : visibleCharIds ? movementLines.filter((l) => visibleCharIds.has(l.characterId))
+    : visibleCharIds ? movementLines.filter((l) => visibleCharIds.has(l.characterId) || visibleCharIds.has(l.characterId.replace(/^travel-/, '')))
     : movementLines
   const displayedMarkers = !mapFilters.showLocations ? []
     : mapFilters.locationTypes.size > 0 ? markers.filter((m) => mapFilters.locationTypes.has(m.iconType))
