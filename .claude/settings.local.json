@@ -20,7 +20,11 @@
       "Bash(find F:/Projects/WorldBreaker -maxdepth 3 -type d -name snapshot* -o -name screenshot* -o -name assets -o -name images -o -name docs)",
       "Bash(gh repo:*)",
       "Bash(npx vite:*)",
-      "Bash(python -c \"import json; d=json.load\\(open\\(''package-lock.json''\\)\\); print\\(''@emnapi/core'' in str\\(list\\(d.get\\(''packages'',{}\\).keys\\(\\)\\)\\)\\)\")"
+      "Bash(python -c \"import json; d=json.load\\(open\\(''package-lock.json''\\)\\); print\\(''@emnapi/core'' in str\\(list\\(d.get\\(''packages'',{}\\).keys\\(\\)\\)\\)\\)\")",
+      "Bash(npx electron-icon-builder:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(gh api:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }

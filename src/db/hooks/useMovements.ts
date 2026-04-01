@@ -30,12 +30,17 @@ export function useCharacterMovement(characterId: string | null, chapterId: stri
   )
 }
 
-/** Appends a waypoint to the movement for a character in a chapter, creating it if needed. */
+/**
+ * Appends a waypoint to the movement for a character in a chapter, creating it if needed.
+ * If `fromMarkerId` is provided and no movement record exists yet, the movement is seeded
+ * with [fromMarkerId, markerId] so a trail line can be drawn immediately.
+ */
 export async function appendWaypoint(
   worldId: string,
   characterId: string,
   chapterId: string,
   markerId: string,
+  fromMarkerId?: string,
 ): Promise<void> {
   const existing = await db.characterMovements
     .where('[characterId+chapterId]')
@@ -51,12 +56,16 @@ export async function appendWaypoint(
       updatedAt: now,
     })
   } else {
+    const waypoints =
+      fromMarkerId && fromMarkerId !== markerId
+        ? [fromMarkerId, markerId]
+        : [markerId]
     const movement: CharacterMovement = {
       id: generateId(),
       worldId,
       characterId,
       chapterId,
-      waypoints: [markerId],
+      waypoints,
       createdAt: now,
       updatedAt: now,
     }

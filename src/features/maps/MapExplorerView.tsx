@@ -10,7 +10,7 @@ import { useRootMapLayers, useMapLayer, useMapLayers, deleteMapLayer, updateMapL
 import { useChapters, useTimelines } from '@/db/hooks/useTimeline'
 import { useLocationMarkers, useAllLocationMarkers } from '@/db/hooks/useLocationMarkers'
 import { useCharacters } from '@/db/hooks/useCharacters'
-import { useBestSnapshots, useWorldSnapshots, useChapterSnapshots, upsertSnapshot } from '@/db/hooks/useSnapshots'
+import { useBestSnapshots, useWorldSnapshots, useChapterSnapshots, upsertSnapshot, fetchSnapshot } from '@/db/hooks/useSnapshots'
 import { useChapterMovements, appendWaypoint, clearMovement, removeLastWaypoint } from '@/db/hooks/useMovements'
 import { useItems } from '@/db/hooks/useItems'
 import { useChapterItemPlacements } from '@/db/hooks/useItemPlacements'
@@ -968,19 +968,27 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
     })
   }
 
-  // Build in-chapter waypoint lines
+  // Build in-chapter waypoint lines — one segment per consecutive waypoint pair
   const movementLines: MovementLine[] = []
   for (const mov of movements) {
-    const points: [number, number][] = []
+    const resolvedPoints: [number, number][] = []
     for (const wId of mov.waypoints) {
       const m = allMarkers.find((mk) => mk.id === wId && mk.mapLayerId === layerId)
-      if (m) points.push([m.y, m.x])
+      if (m) resolvedPoints.push([m.y, m.x])
     }
-    if (points.length >= 2) {
+    for (let i = 0; i < resolvedPoints.length - 1; i++) {
+      const segPoints: [number, number][] = [resolvedPoints[i], resolvedPoints[i + 1]]
       const distanceLabel = layer && layer.scalePixelsPerUnit && layer.scaleUnit
-        ? formatDistance(pathPixelLength(points.map(([y, x]) => [x, y])), layer.scalePixelsPerUnit, layer.scaleUnit)
+        ? formatDistance(pathPixelLength(segPoints.map(([y, x]) => [x, y])), layer.scalePixelsPerUnit, layer.scaleUnit)
         : undefined
-      movementLines.push({ characterId: mov.characterId, color: characterColor(mov.characterId), points, distanceLabel, style: 'waypoint' })
+      movementLines.push({
+        id: `${mov.characterId}-seg-${i}`,
+        characterId: mov.characterId,
+        color: characterColor(mov.characterId),
+        points: segPoints,
+        distanceLabel,
+        style: 'waypoint',
+      })
     }
   }
 
@@ -1010,27 +1018,25 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
 
   async function placeCharacterAtMarker(characterId: string, marker: LocationMarker) {
     if (!activeChapterId) return
+    // Read from DB directly to avoid stale React state
+    const existingInDb = await fetchSnapshot(characterId, activeChapterId)
+    const fromMarkerId = existingInDb?.currentLocationMarkerId
+    // Use React state for non-location fields (isAlive, inventory, etc.)
     const existing = allSnapshots.find(
       (s) => s.characterId === characterId && s.chapterId === activeChapterId
     )
-    // If character has a current location but no waypoints yet this chapter,
-    // seed the movement with their starting position so the trail has an origin point
-    const existingMovement = movements.find((m) => m.characterId === characterId)
-    if (existing?.currentLocationMarkerId && (!existingMovement || existingMovement.waypoints.length === 0)) {
-      await appendWaypoint(worldId, characterId, activeChapterId, existing.currentLocationMarkerId)
-    }
     await upsertSnapshot({
       worldId,
       characterId,
       chapterId: activeChapterId,
-      isAlive: existing?.isAlive ?? true,
+      isAlive: existingInDb?.isAlive ?? existing?.isAlive ?? true,
       currentLocationMarkerId: marker.id,
       currentMapLayerId: marker.mapLayerId,
-      inventoryItemIds: existing?.inventoryItemIds ?? [],
-      inventoryNotes: existing?.inventoryNotes ?? '',
-      statusNotes: existing?.statusNotes ?? '',
+      inventoryItemIds: existingInDb?.inventoryItemIds ?? existing?.inventoryItemIds ?? [],
+      inventoryNotes: existingInDb?.inventoryNotes ?? existing?.inventoryNotes ?? '',
+      statusNotes: existingInDb?.statusNotes ?? existing?.statusNotes ?? '',
     })
-    await appendWaypoint(worldId, characterId, activeChapterId, marker.id)
+    await appendWaypoint(worldId, characterId, activeChapterId, marker.id, fromMarkerId)
   }
 
   async function handleCharacterDrop(characterId: string, markerId: string) {

@@ -71,6 +71,13 @@ export function useBestSnapshots(worldId: string | null, activeChapterId: string
   return Array.from(byChar.values())
 }
 
+export async function fetchSnapshot(characterId: string, chapterId: string): Promise<CharacterSnapshot | undefined> {
+  return db.characterSnapshots
+    .where('[characterId+chapterId]')
+    .equals([characterId, chapterId])
+    .first()
+}
+
 export async function upsertSnapshot(
   data: Omit<CharacterSnapshot, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<CharacterSnapshot> {

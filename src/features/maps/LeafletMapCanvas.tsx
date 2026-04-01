@@ -190,6 +190,8 @@ function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression }) {
 
 // ── Public types ──────────────────────────────────────────────────────────────
 export interface MovementLine {
+  /** Unique key for React rendering; falls back to `characterId-style` if omitted */
+  id?: string
   characterId: string
   color: string
   points: [number, number][]
@@ -357,7 +359,7 @@ export function LeafletMapCanvas({
         {movementLines.map((line) =>
           line.points.length >= 2 && (
             <Polyline
-              key={`${line.characterId}-${line.style ?? 'waypoint'}`}
+              key={line.id ?? `${line.characterId}-${line.style ?? 'waypoint'}`}
               positions={line.points}
               pathOptions={
                 line.style === 'travel'
