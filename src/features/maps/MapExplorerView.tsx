@@ -994,10 +994,15 @@ function MapView({ worldId, layerId }: { worldId: string; layerId: string }) {
       const fromMarker = markers.find((m) => m.id === prev.currentLocationMarkerId)
       const toMarker = markers.find((m) => m.id === snap.currentLocationMarkerId)
       if (!fromMarker || !toMarker) continue
+      const travelPoints: [number, number][] = [[fromMarker.y, fromMarker.x], [toMarker.y, toMarker.x]]
+      const travelDistanceLabel = layer && layer.scalePixelsPerUnit && layer.scaleUnit
+        ? formatDistance(pathPixelLength(travelPoints.map(([y, x]) => [x, y])), layer.scalePixelsPerUnit, layer.scaleUnit)
+        : undefined
       movementLines.push({
         characterId: `travel-${snap.characterId}`,
         color: characterColor(snap.characterId),
-        points: [[fromMarker.y, fromMarker.x], [toMarker.y, toMarker.x]],
+        points: travelPoints,
+        distanceLabel: travelDistanceLabel,
         style: 'travel',
       })
     }
